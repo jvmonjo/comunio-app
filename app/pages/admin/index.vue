@@ -1,123 +1,3 @@
-<template>
-  <div class="p-8 max-w-4xl mx-auto space-y-8 font-sans">
-    <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-        Panell d'Administració
-      </h1>
-      <NuxtLink to="/" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold">
-        &larr; Tornar a la web
-      </NuxtLink>
-    </div>
-    
-    <div v-if="!auth.user.value" class="max-w-md mx-auto">
-      <div class="bg-white/50 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-gray-100">
-        <h2 class="text-xl font-bold mb-6 text-gray-800 text-center">Inicia Sessió</h2>
-        <form @submit.prevent="handleLogin" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input v-model="email" type="email" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" required />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Contrasenya</label>
-            <input v-model="password" type="password" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" required />
-          </div>
-          <button type="submit" :disabled="loading" class="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-medium rounded-lg transition-colors shadow-md disabled:opacity-70 mt-4">
-            {{ loading ? 'Entrant...' : 'Entrar' }}
-          </button>
-          <p v-if="error" class="text-red-500 text-sm mt-4 text-center bg-red-50 p-2 rounded">{{ error }}</p>
-        </form>
-      </div>
-    </div>
-
-    <div v-else class="space-y-8">
-      <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <p class="text-gray-600">Connectat com: <span class="font-semibold text-gray-900">{{ auth.user.value.email }}</span></p>
-        <button @click="handleLogout" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-colors">
-          Tancar Sessió
-        </button>
-      </div>
-
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">Afegir Nou Regal</h3>
-        <form @submit.prevent="handleCreate" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-            <input v-model="newGift.name" required class="w-full rounded-lg border-gray-300 border p-2 text-sm focus:ring-2 focus:ring-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Preu (€)</label>
-            <input v-model.number="newGift.price" type="number" step="0.01" class="w-full rounded-lg border-gray-300 border p-2 text-sm focus:ring-2 focus:ring-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Icona (ex: i-lucide-gift)</label>
-            <input v-model="newGift.icon" class="w-full rounded-lg border-gray-300 border p-2 text-sm focus:ring-2 focus:ring-indigo-500" />
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Descripció</label>
-            <textarea v-model="newGift.description" required rows="2" class="w-full rounded-lg border-gray-300 border p-2 text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
-          </div>
-          <div class="md:col-span-2 mt-2">
-            <button type="submit" :disabled="creating" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors w-full md:w-auto">
-              {{ creating ? 'Creant...' : 'Crear Regal' }}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div class="space-y-4">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Llista de Regals</h3>
-        
-        <div v-if="giftsLoading" class="text-center py-8 text-gray-500">
-          Carregant regals...
-        </div>
-        
-        <div v-else-if="gifts.length === 0" class="text-center py-8 bg-gray-50 rounded-xl text-gray-500 border border-dashed border-gray-300">
-          No hi ha cap regal creat encara.
-        </div>
-        
-        <div v-for="gift in gifts" :key="gift.id" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <span v-if="gift.icon" :class="gift.icon + ' w-5 h-5 text-indigo-500 flex-shrink-0'"></span>
-              <h4 class="font-bold text-lg text-gray-900">{{ gift.name }}</h4>
-              <span v-if="gift.price" class="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">
-                {{ gift.price }} €
-              </span>
-            </div>
-            <p class="text-sm text-gray-600 mb-3">{{ gift.description }}</p>
-            
-            <div class="bg-gray-50 p-3 rounded-lg flex items-start gap-3">
-              <div v-if="gift.assigned_to" class="text-sm w-full">
-                <p class="text-green-700 font-medium flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                  Reservat per: <span class="font-bold">{{ gift.assigned_to }}</span>
-                </p>
-                <p v-if="gift.guest_message" class="text-gray-600 italic mt-2 text-sm px-3 py-2 bg-white rounded border border-gray-200">
-                  "{{ gift.guest_message }}"
-                </p>
-                <p class="text-gray-400 text-xs mt-2 font-mono">{{ new Date(gift.assigned_at).toLocaleString() }}</p>
-              </div>
-              <div v-else class="text-sm text-amber-600 font-medium flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                Lliure / Disponible
-              </div>
-            </div>
-          </div>
-          
-          <div class="flex flex-row md:flex-col justify-end gap-2 shrink-0">
-            <button v-if="gift.assigned_to" @click="handleUnassign(gift.id)" class="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-200">
-              Alliberar
-            </button>
-            <button @click="handleDelete(gift.id)" class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200">
-              Esborrar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
@@ -131,7 +11,7 @@ const error = ref('')
 const gifts = ref<any[]>([])
 const giftsLoading = ref(false)
 const creating = ref(false)
-const newGift = ref({ name: '', description: '', price: undefined, icon: 'i-lucide-gift' })
+const newGift = ref({ name: '', description: '', price: undefined as number | undefined, icon: 'i-lucide-gift' })
 
 onMounted(async () => {
   if (import.meta.client) {
@@ -221,3 +101,159 @@ async function handleUnassign(id: string) {
   }
 }
 </script>
+
+<template>
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(251,113,133,0.16),_transparent_28%),linear-gradient(180deg,_#fffaf2_0%,_#fffdf8_45%,_#fff7ed_100%)] text-stone-900">
+    <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      
+      <header class="mb-8 flex flex-col gap-5 rounded-[2rem] border border-white/70 bg-white/75 px-6 py-5 shadow-[0_24px_80px_-40px_rgba(120,53,15,0.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div class="mb-2 flex items-center gap-3">
+            <UBadge color="neutral" variant="soft" size="lg" class="rounded-full px-3 py-1">
+              Administració
+            </UBadge>
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-tight text-stone-900">
+            Gestió de Regals
+          </h1>
+        </div>
+        <div>
+          <UButton to="/" variant="subtle" color="neutral" icon="i-lucide-arrow-left">
+            Tornar a la web
+          </UButton>
+        </div>
+      </header>
+      
+      <div v-if="!auth.user.value" class="mx-auto mt-12 max-w-sm">
+        <UCard class="rounded-[2rem] border-0 bg-white/80 shadow-[0_24px_80px_-42px_rgba(120,53,15,0.45)] backdrop-blur">
+          <div class="mb-6 text-center">
+            <h2 class="text-xl font-bold text-stone-900">Inicia Sessió</h2>
+            <p class="mt-1 text-sm text-stone-500">Accés restringit per als organitzadors</p>
+          </div>
+
+          <form @submit.prevent="handleLogin" class="space-y-4">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Email</label>
+              <UInput v-model="email" type="email" icon="i-lucide-mail" color="neutral" variant="outline" required />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Contrasenya</label>
+              <UInput v-model="password" type="password" icon="i-lucide-lock" color="neutral" variant="outline" required />
+            </div>
+            <UButton type="submit" block color="neutral" class="mt-2" :loading="loading">
+              Entrar
+            </UButton>
+            
+            <div v-if="error" class="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-200">
+              {{ error }}
+            </div>
+          </form>
+        </UCard>
+      </div>
+
+      <div v-else class="space-y-8">
+        
+        <div class="flex items-center justify-between rounded-[1.5rem] bg-stone-50 p-4 ring-1 ring-stone-200">
+          <div class="flex items-center gap-3 text-stone-700">
+            <UIcon name="i-lucide-user" class="h-5 w-5" />
+            <span class="text-sm font-medium">{{ auth.user.value.email }}</span>
+          </div>
+          <UButton color="neutral" variant="subtle" size="sm" @click="handleLogout" icon="i-lucide-log-out">
+            Tancar Sessió
+          </UButton>
+        </div>
+
+        <UCard class="rounded-[2rem] border-0 bg-white/80 shadow-[0_24px_80px_-42px_rgba(120,53,15,0.45)] backdrop-blur">
+          <div class="mb-5">
+            <p class="text-sm uppercase tracking-[0.28em] text-amber-700">Nou registre</p>
+            <h3 class="mt-2 text-xl font-bold text-stone-900">Afegir Regal</h3>
+          </div>
+          
+          <form @submit.prevent="handleCreate" class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Nom</label>
+              <UInput v-model="newGift.name" color="neutral" placeholder="Ex. Bicicleta" required />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Preu (€)</label>
+              <UInput v-model.number="newGift.price" type="number" color="neutral" placeholder="Opcional" />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Icona (<a href="https://icones.js.org/" target="_blank" class="underline">Lucide</a>)</label>
+              <UInput v-model="newGift.icon" color="neutral" placeholder="i-lucide-gift" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-sm font-medium text-stone-700">Descripció</label>
+              <UTextarea v-model="newGift.description" color="neutral" placeholder="Descriu el regal breument" required :rows="2" />
+            </div>
+            <div class="mt-2 sm:col-span-2">
+              <UButton type="submit" color="primary" icon="i-lucide-plus" :loading="creating">
+                Afegir a la llista
+              </UButton>
+            </div>
+          </form>
+        </UCard>
+
+        <UCard class="rounded-[2rem] border-0 bg-stone-950 text-stone-50 shadow-[0_28px_90px_-45px_rgba(28,25,23,0.95)]">
+          <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+             <div>
+                <p class="text-sm uppercase tracking-[0.28em] text-amber-200/70">Inventari</p>
+                <h3 class="mt-2 text-2xl font-bold">Tots els regals</h3>
+             </div>
+             <UButton color="neutral" variant="soft" icon="i-lucide-refresh-cw" @click="fetchGifts" :loading="giftsLoading">
+                Actualitzar
+             </UButton>
+          </div>
+          
+          <div v-if="gifts.length === 0 && !giftsLoading" class="rounded-[1.5rem] border border-white/10 bg-white/5 p-8 text-center text-stone-400">
+             Encara no hi ha cap regal.
+          </div>
+
+          <div class="grid gap-4">
+             <div 
+               v-for="gift in gifts" 
+               :key="gift.id" 
+               class="flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-5 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-white/10"
+             >
+                <div class="flex-1">
+                  <div class="mb-2 flex items-center gap-3">
+                     <div class="rounded-xl bg-white/10 p-2 text-amber-200">
+                        <UIcon :name="gift.icon || 'i-lucide-gift'" class="h-5 w-5" />
+                     </div>
+                     <h4 class="text-lg font-bold text-stone-100">{{ gift.name }}</h4>
+                     <UBadge v-if="gift.price" color="neutral" variant="subtle" class="ml-2 rounded-full text-xs">
+                        {{ gift.price }} €
+                     </UBadge>
+                  </div>
+                  <p class="mb-3 pl-12 text-sm text-stone-300">{{ gift.description }}</p>
+
+                  <div v-if="gift.assigned_to" class="ml-12 inline-flex flex-col gap-1 rounded-xl bg-amber-500/10 p-3 pr-6 text-sm ring-1 ring-amber-500/20">
+                     <span class="font-medium text-amber-200">
+                       <UIcon name="i-lucide-user-check" class="mr-1 inline -translate-y-[1px] h-4 w-4" /> 
+                       Reservat per: {{ gift.assigned_to }}
+                     </span>
+                     <span v-if="gift.guest_message" class="mt-1 pl-5 italic text-amber-200/70">"{{ gift.guest_message }}"</span>
+                     <span class="mt-1 pl-5 text-xs text-amber-200/50">{{ new Date(gift.assigned_at).toLocaleString() }}</span>
+                  </div>
+                  <div v-else class="ml-12 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-sm text-emerald-400 ring-1 ring-emerald-500/20">
+                     <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                     Disponible
+                  </div>
+                </div>
+
+                <div class="flex shrink-0 gap-2 sm:flex-col items-end">
+                   <UButton v-if="gift.assigned_to" color="warning" variant="subtle" size="xs" icon="i-lucide-unlock" @click="handleUnassign(gift.id)">
+                      Alliberar
+                   </UButton>
+                   <UButton color="error" variant="subtle" size="xs" icon="i-lucide-trash-2" @click="handleDelete(gift.id)">
+                      Eliminar
+                   </UButton>
+                </div>
+             </div>
+          </div>
+        </UCard>
+
+      </div>
+    </div>
+  </div>
+</template>
