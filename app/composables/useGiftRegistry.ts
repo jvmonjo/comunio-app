@@ -126,11 +126,9 @@ export function useGiftRegistry() {
       }
 
       gifts.value = (data ?? []).map(item => normalizeGift(item))
-    }
-    catch (err) {
+    } catch (err) {
       error.value = err instanceof Error ? err.message : 'No s\'han pogut carregar els regals.'
-    }
-    finally {
+    } finally {
       isLoading.value = false
     }
   }
@@ -180,13 +178,11 @@ export function useGiftRegistry() {
       await fetchGifts()
 
       return { ok: true, message: 'Regal reservat correctament.' }
-    }
-    catch (err) {
+    } catch (err) {
       const message = err instanceof Error ? err.message : 'No s\'ha pogut completar la reserva.'
       error.value = message
       return { ok: false, message }
-    }
-    finally {
+    } finally {
       isSubmitting.value = false
     }
   }

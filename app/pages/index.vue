@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { GiftItem } from '~/composables/useGiftRegistry'
 
-const { settings, fetchSettings } = useEventSettings()
+const { settings, fetchSettings, themeClasses: th } = useEventSettings()
 
 useSeoMeta({
   title: computed(() => `Primera Comunio de ${settings.value.child_name}`),
@@ -124,7 +124,7 @@ const isReady = ref(false)
 onMounted(async () => {
   await Promise.all([fetchSettings(), fetchGifts()])
   isReady.value = true
-  
+
   timer = setInterval(() => {
     now.value = Date.now()
   }, 1000 * 30)
@@ -138,116 +138,141 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="!isReady" class="flex min-h-[100dvh] items-center justify-center bg-[#fffaf2]">
+  <div v-if="!isReady" :class="['flex min-h-[100dvh] items-center justify-center', th.loaderBg]">
     <div class="flex flex-col items-center gap-4">
-      <UIcon name="i-lucide-loader-2" class="h-10 w-10 animate-spin text-amber-500" />
-      <span class="text-sm font-medium tracking-widest text-amber-900/60 uppercase">Carregant...</span>
+      <UIcon name="i-lucide-loader-2" :class="['h-10 w-10 animate-spin', th.loaderIcon]" />
+      <span :class="['text-sm font-medium tracking-widest opacity-60 uppercase', th.loaderText]">Carregant...</span>
     </div>
   </div>
 
-  <div v-else
-    class="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(251,113,133,0.16),_transparent_28%),linear-gradient(180deg,_#fffaf2_0%,_#fffdf8_45%,_#fff7ed_100%)] text-stone-900">
+  <div v-else :class="th.bgMain">
     <div class="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col px-4 pt-6 pb-32 sm:px-6 lg:px-8">
       <header
         class="mb-8 flex flex-col gap-5 rounded-[2rem] border border-white/70 bg-white/75 px-6 py-5 shadow-[0_24px_80px_-40px_rgba(120,53,15,0.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="mb-2 flex items-center gap-3">
-            <UBadge color="warning" variant="soft" size="lg" class="rounded-full px-3 py-1">
-              Primera Comunio
-            </UBadge>
+            <span
+              :class="['inline-flex items-center rounded-full px-3 py-1 px-3 py-1 text-xs font-medium', th.badgeSoft]">
+              Primera Comunió
+            </span>
             <UBadge v-if="!isConfigured" color="neutral" variant="subtle" class="rounded-full px-3 py-1">
               Mode demo
             </UBadge>
           </div>
-          <h1 class="max-w-2xl text-4xl font-extrabold tracking-tight text-stone-900 sm:text-5xl">
-            <span class="text-amber-600">{{ settings.child_name }}</span> celebra un dia molt especial i ens encantaria
+          <h1 class="max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl" :class="th.inverseText">
+            <span :class="th.heroAccentText">{{ settings.child_name }}</span> celebra un dia molt especial i ens
+            encantaria
             compartir-lo amb tu.
           </h1>
         </div>
 
-        <div class="grid grid-cols-3 gap-3 rounded-[1.75rem] bg-stone-950 p-4 text-center text-stone-50 shadow-xl">
-          <div class="rounded-2xl bg-white/8 px-4 py-3">
-            <div class="text-3xl font-bold">{{ countdown.days }}</div>
-            <div class="text-xs uppercase tracking-[0.24em] text-stone-300">dies</div>
+        <div :class="['grid grid-cols-3 gap-3 rounded-[1.75rem] p-4 text-center', th.cardMainBg]">
+          <div :class="['rounded-2xl px-4 py-3 bg-black/5']">
+            <div class="text-3xl font-bold">
+              {{ countdown.days }}
+            </div>
+            <div :class="['text-xs uppercase tracking-[0.24em]', th.subText]">
+              dies
+            </div>
           </div>
-          <div class="rounded-2xl bg-white/8 px-4 py-3">
-            <div class="text-3xl font-bold">{{ countdown.hours }}</div>
-            <div class="text-xs uppercase tracking-[0.24em] text-stone-300">hores</div>
+          <div :class="['rounded-2xl px-4 py-3 bg-black/5']">
+            <div class="text-3xl font-bold">
+              {{ countdown.hours }}
+            </div>
+            <div :class="['text-xs uppercase tracking-[0.24em]', th.subText]">
+              hores
+            </div>
           </div>
-          <div class="rounded-2xl bg-white/8 px-4 py-3">
-            <div class="text-3xl font-bold">{{ countdown.minutes }}</div>
-            <div class="text-xs uppercase tracking-[0.24em] text-stone-300">minuts</div>
+          <div :class="['rounded-2xl px-4 py-3 bg-black/5']">
+            <div class="text-3xl font-bold">
+              {{ countdown.minutes }}
+            </div>
+            <div :class="['text-xs uppercase tracking-[0.24em]', th.subText]">
+              minuts
+            </div>
           </div>
         </div>
       </header>
 
       <section class="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-        <UCard
-          class="overflow-hidden rounded-[2rem] border-0 bg-stone-950 text-stone-50 shadow-[0_28px_90px_-45px_rgba(28,25,23,0.95)]">
+        <UCard :class="['overflow-hidden rounded-[2rem] border-0', th.cardMainBg]">
           <div class="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
             <div class="space-y-6">
               <div
-                class="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-sm text-amber-100">
+                :class="['inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm', th.heroIconBg, th.heroIconColor]">
                 <UIcon name="i-lucide-sparkles" class="h-4 w-4" />
                 Una celebració càlida i familiar
               </div>
 
               <div>
-                <p class="mb-3 text-sm uppercase tracking-[0.28em] text-amber-200/70">
+                <p :class="['mb-3 text-sm uppercase tracking-[0.28em] font-medium', th.heroAccentText]">
                   {{ formattedDateLong }}
                 </p>
-                <p class="max-w-xl text-lg leading-8 text-stone-200">
+                <p :class="['max-w-xl text-lg leading-8', th.inverseText]">
                   T’esperem a la {{ settings.ceremony_location }} a les {{ formattedTime }} i després continuarem la
                   festa {{ settings.restaurant_location }}.
                 </p>
               </div>
 
               <div class="grid gap-4 sm:grid-cols-2">
-                <div class="rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
+                <div class="rounded-[1.5rem] border border-black/5 bg-black/5 p-5">
                   <div class="mb-3 flex items-center gap-3">
-                    <div class="rounded-2xl bg-amber-300/15 p-3 text-amber-200">
+                    <div :class="['rounded-2xl p-3', th.heroIconBg, th.heroIconColor]">
                       <UIcon name="i-lucide-calendar-heart" class="h-5 w-5" />
                     </div>
-                    <div class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-300">Data</div>
+                    <div :class="['text-sm font-semibold uppercase tracking-[0.18em]', th.subText]">
+                      Data
+                    </div>
                   </div>
-                  <p class="text-base text-stone-100">{{ formatEventDate(eventDate) }}</p>
+                  <p class="text-base font-medium">
+                    {{ formatEventDate(eventDate) }}
+                  </p>
                 </div>
 
-                <div class="rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
+                <div class="rounded-[1.5rem] border border-black/5 bg-black/5 p-5">
                   <div class="mb-3 flex items-center gap-3">
-                    <div class="rounded-2xl bg-rose-300/15 p-3 text-rose-200">
+                    <div :class="['rounded-2xl p-3', th.heroIconBg, th.heroIconColor]">
                       <UIcon name="i-lucide-map-pinned" class="h-5 w-5" />
                     </div>
-                    <div class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-300">Ubicació</div>
+                    <div :class="['text-sm font-semibold uppercase tracking-[0.18em]', th.subText]">
+                      Ubicació
+                    </div>
                   </div>
-                  <p class="text-base text-stone-100">{{ settings.ceremony_location }}</p>
+                  <p class="text-base font-medium">
+                    {{ settings.ceremony_location }}
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div
-              class="flex flex-col justify-between rounded-[1.75rem] bg-[linear-gradient(180deg,rgba(251,191,36,0.14),rgba(251,146,60,0.04))] p-6 ring-1 ring-white/10">
+            <div :class="['flex flex-col justify-between rounded-[1.75rem] p-6', th.cardSecBg]">
               <div>
-                <p class="text-sm uppercase tracking-[0.28em] text-amber-100/80">Informació pràctica</p>
-                <ul class="mt-5 space-y-4 text-sm leading-7 text-stone-200">
+                <p :class="['text-sm uppercase tracking-[0.28em] font-semibold', th.cardLabel]">
+                  Informació pràctica
+                </p>
+                <ul :class="['mt-5 space-y-4 text-sm leading-7', th.inverseText]">
                   <li class="flex gap-3">
-                    <UIcon name="i-lucide-shirt" class="mt-1 h-4 w-4 shrink-0 text-amber-200" />
+                    <UIcon name="i-lucide-shirt" :class="['mt-1 h-4 w-4 shrink-0', th.heroAccentText]" />
                     Vestimenta formal però còmoda.
                   </li>
                   <li class="flex gap-3">
-                    <UIcon name="i-lucide-party-popper" class="mt-1 h-4 w-4 shrink-0 text-amber-200" />
+                    <UIcon name="i-lucide-party-popper" :class="['mt-1 h-4 w-4 shrink-0', th.heroAccentText]" />
                     Després de la missa hi haurà dinar i espai de jocs per als menuts.
                   </li>
                   <li class="flex gap-3">
-                    <UIcon name="i-lucide-gift" class="mt-1 h-4 w-4 shrink-0 text-amber-200" />
+                    <UIcon name="i-lucide-gift" :class="['mt-1 h-4 w-4 shrink-0', th.heroAccentText]" />
                     Si vols fer un detall, pots reservar un regal des de la llista d’ací baix.
                   </li>
                 </ul>
               </div>
 
-              <div class="mt-8 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-sm text-stone-200">
-                <p class="font-semibold text-white">Contacte familiar</p>
-                <p class="mt-2">{{ settings.contact_parents }} · {{ settings.contact_phone }}</p>
+              <div class="mt-8 rounded-[1.5rem] border border-black/5 bg-white/50 p-4 text-sm mix-blend-multiply">
+                <p class="font-semibold text-black">
+                  Contacte familiar
+                </p>
+                <p :class="['mt-2', th.subText]">
+                  {{ settings.contact_parents }} · {{ settings.contact_phone }}
+                </p>
               </div>
             </div>
           </div>
@@ -257,18 +282,30 @@ onBeforeUnmount(() => {
           class="rounded-[2rem] border-0 bg-white/80 shadow-[0_24px_80px_-42px_rgba(120,53,15,0.45)] backdrop-blur">
           <div class="space-y-5">
             <div>
-              <p class="text-sm uppercase tracking-[0.28em] text-amber-700">Resum</p>
-              <h2 class="mt-2 text-2xl font-bold text-stone-900">Regals i reserves</h2>
+              <p class="text-sm uppercase tracking-[0.28em] text-amber-700">
+                Resum
+              </p>
+              <h2 class="mt-2 text-2xl font-bold text-stone-900">
+                Regals i reserves
+              </h2>
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
               <div class="rounded-[1.5rem] bg-emerald-50 p-4 ring-1 ring-emerald-100">
-                <p class="text-sm text-emerald-700">Disponibles</p>
-                <p class="mt-2 text-3xl font-bold text-emerald-950">{{ availableGifts.length }}</p>
+                <p class="text-sm text-emerald-700">
+                  Disponibles
+                </p>
+                <p class="mt-2 text-3xl font-bold text-emerald-950">
+                  {{ availableGifts.length }}
+                </p>
               </div>
               <div class="rounded-[1.5rem] bg-amber-50 p-4 ring-1 ring-amber-100">
-                <p class="text-sm text-amber-700">Reservats</p>
-                <p class="mt-2 text-3xl font-bold text-amber-950">{{ reservedGifts.length }}</p>
+                <p class="text-sm text-amber-700">
+                  Reservats
+                </p>
+                <p class="mt-2 text-3xl font-bold text-amber-950">
+                  {{ reservedGifts.length }}
+                </p>
               </div>
             </div>
 
@@ -293,8 +330,12 @@ onBeforeUnmount(() => {
         <div class="space-y-5">
           <div class="flex items-end justify-between gap-4">
             <div>
-              <p class="text-sm uppercase tracking-[0.28em] text-amber-700">Llista de regals</p>
-              <h2 class="mt-2 text-3xl font-bold text-stone-900">Tria un detall si et ve de gust</h2>
+              <p :class="['text-sm uppercase tracking-[0.28em] font-semibold', th.cardLabel]">
+                Llista de regals
+              </p>
+              <h2 :class="['mt-2 text-3xl font-bold', th.inverseText]">
+                Tria un detall si et ve de gust
+              </h2>
             </div>
           </div>
 
@@ -304,42 +345,48 @@ onBeforeUnmount(() => {
 
           <div class="grid gap-4 md:grid-cols-2">
             <UCard v-for="gift in gifts" :key="gift.id"
-              class="rounded-[1.75rem] border-0 shadow-[0_20px_60px_-36px_rgba(120,53,15,0.35)] transition-transform duration-200 hover:-translate-y-1"
-              :class="gift.assigned_to ? 'bg-stone-100/90' : 'bg-white/85'">
+              class="rounded-[1.75rem] border-0 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] ring-1 ring-black/5 transition-transform duration-200 hover:-translate-y-1"
+              :class="gift.assigned_to ? 'bg-black/5' : 'bg-white'">
               <div class="flex h-full flex-col">
                 <div v-if="gift.image_url" class="-mx-6 -mt-6 mb-5 h-48 sm:h-56 overflow-hidden rounded-t-[1.75rem]">
                   <img :src="gift.image_url" :alt="gift.name"
-                    class="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                    class="h-full w-full object-cover transition-transform duration-500 hover:scale-105">
                 </div>
 
                 <div class="mb-4 flex items-start justify-between gap-4">
                   <div>
                     <div class="mb-2 flex items-center gap-2">
-                      <UBadge :color="gift.assigned_to ? 'neutral' : 'success'" variant="subtle" class="rounded-full">
+                      <span
+                        :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', gift.assigned_to ? 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-500/10' : th.badgeSoft]">
                         {{ gift.assigned_to ? 'Reservat' : 'Disponible' }}
-                      </UBadge>
-                      <span v-if="gift.price" class="text-sm font-semibold text-stone-500">{{ gift.price }} €</span>
+                      </span>
+                      <span v-if="gift.price" :class="['text-sm font-semibold', th.subText]">{{ gift.price }} €</span>
                     </div>
-                    <h3 class="text-xl font-semibold text-stone-900">{{ gift.name }}</h3>
+                    <h3 :class="['text-xl font-semibold', th.inverseText]">
+                      {{ gift.name }}
+                    </h3>
                   </div>
                 </div>
 
-                <p class="mb-4 text-sm leading-6 text-stone-600">{{ gift.description }}</p>
+                <p :class="['mb-4 text-sm leading-6', th.subText]">
+                  {{ gift.description }}
+                </p>
 
                 <div v-if="gift.purchase_options && gift.purchase_options.length > 0" class="mb-5">
-                  <p class="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2">Suggeriments de compra
+                  <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
+                    Suggeriments de compra
                   </p>
                   <ul class="space-y-2">
                     <li v-for="(opt, idx) in gift.purchase_options" :key="idx"
-                      class="flex justify-between items-center rounded-xl bg-stone-50 p-3 ring-1 ring-stone-900/5 transition-colors hover:bg-stone-100 text-sm">
-                      <div class="flex items-center gap-2 text-stone-700">
-                        <UIcon name="i-lucide-shopping-bag" class="h-4 w-4 text-amber-500" />
+                      class="flex justify-between items-center rounded-xl bg-slate-50 p-3 ring-1 ring-slate-900/5 transition-colors hover:bg-slate-100 text-sm">
+                      <div class="flex items-center gap-2 text-slate-700">
+                        <UIcon name="i-lucide-shopping-bag" :class="['h-4 w-4', th.heroAccentText]" />
                         <span class="font-medium">{{ opt.store_name }}</span>
                       </div>
                       <div class="flex items-center gap-3">
-                        <span v-if="opt.price" class="text-stone-500 font-medium">{{ opt.price }} €</span>
+                        <span v-if="opt.price" class="text-slate-500 font-medium">{{ opt.price }} €</span>
                         <a v-if="opt.link" :href="opt.link" target="_blank" rel="noopener noreferrer"
-                          class="text-amber-600 hover:text-amber-800 transition-colors p-1 rounded-full hover:bg-amber-100 flex items-center justify-center"
+                          :class="['transition-colors p-1 rounded-full flex items-center justify-center hover:bg-black/5', th.heroAccentText]"
                           title="Veure a la tenda">
                           <UIcon name="i-lucide-external-link" class="h-4 w-4" />
                         </a>
@@ -349,13 +396,13 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div v-if="gift.assigned_to"
-                  class="mb-5 flex items-center justify-center gap-2 rounded-[1.25rem] bg-stone-100 p-3 text-sm font-medium text-stone-500 ring-1 ring-stone-200/60">
+                  class="mb-5 flex items-center justify-center gap-2 rounded-[1.25rem] bg-black/5 p-3 text-sm font-medium text-slate-500 ring-1 ring-slate-200/60">
                   <UIcon name="i-lucide-lock" class="h-4 w-4" />
                   Aquest regal ja ha estat reservat
                 </div>
 
                 <div class="mt-auto">
-                  <UButton block :color="gift.assigned_to ? 'neutral' : 'primary'"
+                  <UButton block :color="gift.assigned_to ? 'neutral' : th.btnPrimary as any"
                     :variant="gift.assigned_to ? 'subtle' : 'solid'" :disabled="Boolean(gift.assigned_to)"
                     @click="selectGift(gift)">
                     <span v-if="selectedGiftId === gift.id">Seleccionat</span>
@@ -369,51 +416,56 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="lg:sticky lg:top-6 lg:self-start">
-          <UCard
-            class="rounded-[2rem] border-0 bg-stone-950 text-stone-50 shadow-[0_28px_80px_-42px_rgba(28,25,23,0.95)]">
+          <UCard :class="['rounded-[2rem] border-0', th.cardMainBg]">
             <div class="space-y-5">
               <div>
-                <p class="text-sm uppercase tracking-[0.28em] text-amber-200/70">Reserva</p>
-                <h2 class="mt-2 text-2xl font-bold">Assigna el teu regal</h2>
-                <p class="mt-2 text-sm leading-6 text-stone-300">
+                <p :class="['text-sm uppercase tracking-[0.28em] font-semibold', th.cardLabel]">
+                  Reserva
+                </p>
+                <h2 :class="['mt-2 text-2xl font-bold', th.inverseText]">
+                  Assigna el teu regal
+                </h2>
+                <p :class="['mt-2 text-sm leading-6', th.subText]">
                   Només necessitem el teu nom. Si el regal ja l’ha agafat una altra persona, t’avisarem.
                 </p>
               </div>
 
-              <div class="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                <p class="text-xs uppercase tracking-[0.22em] text-stone-400">Regal seleccionat</p>
-                <p class="mt-2 text-lg font-semibold text-white">
+              <div class="rounded-[1.5rem] bg-black/5 ring-1 ring-black/5 p-4">
+                <p :class="['text-xs uppercase tracking-[0.22em] font-medium', th.subText]">
+                  Regal seleccionat
+                </p>
+                <p :class="['mt-2 text-lg font-bold', th.inverseText]">
                   {{ selectedGift?.name || 'Encara no n’has triat cap' }}
                 </p>
-                <p class="mt-2 text-sm leading-6 text-stone-300">
+                <p :class="['mt-2 text-sm leading-6', th.subText]">
                   <span v-if="selectedGift">{{ selectedGift.description }}</span>
                   <span v-else>Selecciona un regal disponible de la llista per a completar la reserva.</span>
                 </p>
               </div>
 
               <div v-if="feedback" class="rounded-[1.5rem] p-4 text-sm" :class="feedback.tone === 'success'
-                ? 'bg-emerald-400/10 text-emerald-100 ring-1 ring-emerald-400/20'
+                ? 'bg-emerald-400/10 text-emerald-800 ring-1 ring-emerald-400/20'
                 : feedback.tone === 'error'
-                  ? 'bg-red-400/10 text-red-100 ring-1 ring-red-400/20'
-                  : 'bg-white/8 text-stone-100 ring-1 ring-white/10'">
+                  ? 'bg-red-400/10 text-red-800 ring-1 ring-red-400/20'
+                  : 'bg-black/5 text-slate-800 ring-1 ring-black/10'">
                 {{ feedback.text }}
               </div>
 
               <div class="space-y-4">
                 <div>
-                  <label class="mb-2 block text-sm font-medium text-stone-200">El teu nom</label>
-                  <UInput v-model="guestName" size="xl" color="neutral" variant="outline" placeholder="Ex. Maria i Joan"
-                    class="w-full" />
+                  <label :class="['mb-2 block text-sm font-medium', th.inverseText]">El teu nom</label>
+                  <UInput v-model="guestName" size="xl" :color="th.inputColor as any" variant="outline"
+                    placeholder="Ex. Maria i Joan" class="w-full" />
                 </div>
 
                 <div>
-                  <label class="mb-2 block text-sm font-medium text-stone-200">Missatge opcional</label>
-                  <UTextarea v-model="guestMessage" :rows="4" color="neutral" variant="outline"
+                  <label :class="['mb-2 block text-sm font-medium', th.inverseText]">Missatge opcional</label>
+                  <UTextarea v-model="guestMessage" :rows="4" :color="th.inputColor as any" variant="outline"
                     placeholder="Ex. Moltes ganes d’acompanyar-vos en aquest dia." class="w-full" />
                 </div>
               </div>
 
-              <UButton block size="xl" color="warning" icon="i-lucide-check" :loading="isSubmitting"
+              <UButton block size="xl" :color="th.btnPrimary as any" icon="i-lucide-check" :loading="isSubmitting"
                 @click="handleReserveGift">
                 Reservar regal
               </UButton>

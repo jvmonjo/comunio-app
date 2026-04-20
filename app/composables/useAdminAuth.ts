@@ -4,7 +4,7 @@ export function useAdminAuth() {
   const config = useRuntimeConfig()
   const client = useState<SupabaseClient | null>('admin-supabase-client', () => null)
   const user = useState<any>('admin-user', () => null)
-  
+
   function getClient() {
     if (!config.public.supabaseUrl || !config.public.supabaseAnonKey) return null
     if (!client.value) {
