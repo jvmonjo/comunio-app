@@ -11,6 +11,13 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  runtimeConfig: {
+    public: {
+      supabaseUrl: '',
+      supabaseAnonKey: ''
+    }
+  },
+
   routeRules: {
     '/': { prerender: true }
   },

@@ -1,5 +1,5 @@
 {
-  "name": "split-invoice",
+  "name": "communion-landing",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,14 +14,14 @@
     "@iconify-json/lucide": "^1.2.87",
     "@iconify-json/simple-icons": "^1.2.68",
     "@nuxt/ui": "^4.4.0",
+    "@supabase/supabase-js": "^2.103.3",
     "nuxt": "^4.3.0",
-    "pdfjs-dist": "^5.4.624",
-    "tailwindcss": "^4.1.18",
-    "tesseract.js": "^7.0.0"
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.13.0",
     "eslint": "^9.39.2",
+    "supabase": "^2.92.1",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.4"
   },

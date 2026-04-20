@@ -1,60 +1,89 @@
-# Nuxt Starter Template
+# Communion Landing MVP
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+Landing page feta amb `Nuxt 4`, `Nuxt UI 4` i `Supabase` per a una primera comunio. El repositori està ara centrat només en aquest producte.
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+Inclou:
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
+- informació bàsica de l'esdeveniment
+- compte enrere fins al dia
+- llista de regals
+- reserva d'un regal per convidat
+- mode demo si encara no has configurat `Supabase`
 
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-  </picture>
-</a>
+## Stack
 
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
+- `Nuxt 4`
+- `@nuxt/ui` 4
+- `@supabase/supabase-js`
+- `Tailwind CSS` 4
+- `TypeScript`
 
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t github:nuxt-ui-templates/starter
-```
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
-
-## Setup
-
-Make sure to install the dependencies:
+## Posada en marxa
 
 ```bash
 pnpm install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
+cp .env.example .env
 pnpm dev
 ```
 
-## Production
-
-Build the application for production:
+## Variables d'entorn
 
 ```bash
-pnpm build
+NUXT_PUBLIC_SUPABASE_URL=
+NUXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
-Locally preview production build:
+Si no les poses, la web funciona en mode demo amb dades en memòria.
 
-```bash
-pnpm preview
+## Esquema SQL mínim
+
+```sql
+create table public.gifts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text not null,
+  price numeric(10, 2),
+  icon text,
+  assigned_to text,
+  guest_message text,
+  assigned_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.gifts enable row level security;
+
+create policy "public read gifts"
+on public.gifts
+for select
+using (true);
+
+create policy "reserve free gift"
+on public.gifts
+for update
+using (assigned_to is null)
+with check (
+  assigned_to is not null
+  and char_length(assigned_to) > 1
+);
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Dades de prova
+
+```sql
+insert into public.gifts (name, description, price, icon)
+values
+  ('Bicicleta', 'Una bici per a eixir els caps de setmana.', 185, 'i-lucide-bike'),
+  ('Lego gran', 'Set creatiu per a construir i jugar en família.', 79, 'i-lucide-blocks'),
+  ('Rellotge', 'Un detall especial per al dia de la comunio.', 120, 'i-lucide-watch'),
+  ('Llibres d''aventures', 'Pack de lectures per a l''estiu.', 45, 'i-lucide-book-open');
+```
+
+## Reserva concurrent
+
+La reserva es fa amb un `update` condicionat:
+
+```ts
+.eq('id', giftId).is('assigned_to', null)
+```
+
+Si una altra persona l'ha reservat abans, no s'actualitza cap fila i la UI mostra error.
