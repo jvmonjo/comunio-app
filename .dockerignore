@@ -1,0 +1,11 @@
+.git
+.github
+.nuxt
+.output
+node_modules
+.pnpm-store
+.vscode
+.env
+.env.*
+README.md
+AGENTS.md
