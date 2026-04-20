@@ -1,11 +1,18 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
+export interface PurchaseOption {
+  store_name: string
+  link?: string
+  price?: number
+}
+
 export interface GiftItem {
   id: string
   name: string
   description: string
   price?: number | null
-  icon?: string | null
+  image_url?: string | null
+  purchase_options?: PurchaseOption[] | null
   assigned_to?: string | null
   guest_message?: string | null
   assigned_at?: string | null
@@ -23,7 +30,8 @@ const demoGifts: GiftItem[] = [
     name: 'Bicicleta',
     description: 'Per a eixir els caps de setmana i estrenar noves aventures.',
     price: 185,
-    icon: 'i-lucide-bike',
+    image_url: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=400&q=80',
+    purchase_options: [{ store_name: 'Decathlon', price: 185, link: 'https://decathlon.es' }],
     assigned_to: null
   },
   {
@@ -31,7 +39,8 @@ const demoGifts: GiftItem[] = [
     name: 'Lego gran',
     description: 'Un set creatiu per a construir en família i continuar jugant després de la festa.',
     price: 79,
-    icon: 'i-lucide-blocks',
+    image_url: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?auto=format&fit=crop&w=400&q=80',
+    purchase_options: [{ store_name: 'Amazon', price: 75, link: 'https://amazon.es' }, { store_name: 'El Corte Inglés', price: 79 }],
     assigned_to: null
   },
   {
@@ -39,7 +48,8 @@ const demoGifts: GiftItem[] = [
     name: 'Rellotge',
     description: 'Un record especial del dia de la comunio.',
     price: 120,
-    icon: 'i-lucide-watch',
+    image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80',
+    purchase_options: [{ store_name: 'Rellotgeria local', price: 120 }],
     assigned_to: 'Els iaios'
   },
   {
@@ -47,7 +57,8 @@ const demoGifts: GiftItem[] = [
     name: 'Llibres d\'aventures',
     description: 'Pack de lectures per a l\'estiu amb històries d\'exploradors i misteris.',
     price: 45,
-    icon: 'i-lucide-book-open',
+    image_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=80',
+    purchase_options: [{ store_name: 'Casa del Llibre', price: 45, link: 'https://casadellibro.com' }],
     assigned_to: null
   }
 ]
@@ -58,7 +69,8 @@ function normalizeGift(raw: Partial<GiftItem> & { id: string, name: string, desc
     name: raw.name,
     description: raw.description,
     price: raw.price ?? null,
-    icon: raw.icon ?? 'i-lucide-gift',
+    image_url: raw.image_url ?? null,
+    purchase_options: raw.purchase_options ?? [],
     assigned_to: raw.assigned_to ?? null,
     guest_message: raw.guest_message ?? null,
     assigned_at: raw.assigned_at ?? null
@@ -106,7 +118,7 @@ export function useGiftRegistry() {
 
       const { data, error: fetchError } = await supabase
         .from('gifts')
-        .select('id, name, description, price, icon, assigned_to, guest_message, assigned_at')
+        .select('id, name, description, price, image_url, purchase_options, assigned_to, guest_message, assigned_at')
         .order('created_at', { ascending: true })
 
       if (fetchError) {

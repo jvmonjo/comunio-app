@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 const auth = useAdminAuth()
+const { settings, fetchSettings } = useEventSettings()
 
 const email = ref('')
 const password = ref('')
@@ -10,16 +11,125 @@ const error = ref('')
 
 const gifts = ref<any[]>([])
 const giftsLoading = ref(false)
-const creating = ref(false)
-const newGift = ref({ name: '', description: '', price: undefined as number | undefined, icon: 'i-lucide-gift' })
+const saving = ref(false)
+const settingsSaving = ref(false)
+const editingId = ref<string | null>(null)
+
+const localEventDate = computed({
+  get() {
+    if (!settings.value?.event_date) return ''
+    const d = new Date(settings.value.event_date)
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+  },
+  set(val) {
+    if (val) settings.value.event_date = new Date(val).toISOString()
+  }
+})
+
+const selectedFile = ref<File | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const toast = useToast()
+
+const confirmModal = ref({
+  isOpen: false,
+  title: '',
+  description: '',
+  confirmText: 'Confirmar',
+  color: 'primary' as 'primary' | 'red' | 'warning',
+  action: async () => {}
+})
+const confirmLoading = ref(false)
+
+function showAlert(title: string, message: string, isError = false) {
+  toast.add({
+    title,
+    description: message,
+    color: isError ? 'red' : 'green',
+    icon: isError ? 'i-lucide-alert-circle' : 'i-lucide-check-circle'
+  })
+}
+
+function showConfirm(title: string, description: string, confirmText: string, color: 'primary' | 'red' | 'warning', action: () => Promise<void>) {
+  confirmModal.value = { isOpen: true, title, description, confirmText, color, action }
+}
+
+async function handleConfirmSubmit() {
+  confirmLoading.value = true
+  try {
+    await confirmModal.value.action()
+  } catch (err: any) {
+    showAlert('Error', err.message, true)
+  } finally {
+    confirmLoading.value = false
+    confirmModal.value.isOpen = false
+  }
+}
+// --------------------
+
+interface PurchaseOption {
+  store_name: string
+  price?: number
+  link?: string
+}
+
+const defaultGift = () => ({
+  name: '',
+  description: '',
+  price: undefined as number | undefined,
+  image_url: '',
+  purchase_options: [{ store_name: '', price: undefined, link: '' }] as PurchaseOption[]
+})
+
+const newGift = ref(defaultGift())
+
+function onFileChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  selectedFile.value = file || null
+}
+
+function addPurchaseOption() {
+  newGift.value.purchase_options.push({ store_name: '', price: undefined, link: '' })
+}
+
+function removePurchaseOption(idx: number) {
+  newGift.value.purchase_options.splice(idx, 1)
+}
+
+function handleEdit(gift: any) {
+  editingId.value = gift.id
+  newGift.value = {
+    name: gift.name,
+    description: gift.description,
+    price: gift.price || undefined,
+    image_url: gift.image_url || '',
+    purchase_options: gift.purchase_options && gift.purchase_options.length > 0 
+      ? JSON.parse(JSON.stringify(gift.purchase_options)) 
+      : [{ store_name: '', price: undefined, link: '' }]
+  }
+  if (fileInput.value) fileInput.value.value = ''
+  selectedFile.value = null
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function cancelEdit() {
+  editingId.value = null
+  newGift.value = defaultGift()
+  if (fileInput.value) fileInput.value.value = ''
+  selectedFile.value = null
+}
+
+const isReady = ref(false)
 
 onMounted(async () => {
   if (import.meta.client) {
     const sessionActive = await auth.checkSession()
     if (sessionActive) {
+      await fetchSettings()
       await fetchGifts()
     }
   }
+  isReady.value = true
 })
 
 async function handleLogin() {
@@ -28,7 +138,10 @@ async function handleLogin() {
   try {
     const res = await auth.login(email.value, password.value)
     if (res.error) error.value = res.error.message || 'Error en iniciar sessió'
-    else await fetchGifts()
+    else {
+      await fetchSettings()
+      await fetchGifts()
+    }
   } catch (err: any) {
     error.value = err?.message || 'Error desconegut'
   } finally {
@@ -39,6 +152,28 @@ async function handleLogin() {
 async function handleLogout() {
   await auth.logout()
   gifts.value = []
+}
+
+async function handleSaveSettings() {
+  settingsSaving.value = true
+  try {
+    const supabase = auth.getClient()
+    if(!supabase) return
+    const { error: err } = await supabase.from('event_settings').update({
+       child_name: settings.value.child_name,
+       event_date: settings.value.event_date,
+       ceremony_location: settings.value.ceremony_location,
+       restaurant_location: settings.value.restaurant_location,
+       contact_parents: settings.value.contact_parents,
+       contact_phone: settings.value.contact_phone
+    }).eq('id', 1)
+    if (err) throw err
+    showAlert('Correcte', 'Configuració de l\'esdeveniment desada amb èxit.', false)
+  } catch (e: any) {
+    showAlert('Error al guardar', e.message, true)
+  } finally {
+    settingsSaving.value = false
+  }
 }
 
 async function fetchGifts() {
@@ -53,57 +188,107 @@ async function fetchGifts() {
   }
 }
 
-async function handleCreate() {
-  creating.value = true
+async function handleSave() {
+  saving.value = true
   try {
     const supabase = auth.getClient()
     if(!supabase) return
-    const { error: err } = await supabase.from('gifts').insert([{ ...newGift.value }])
+    
+    // Clean up empty purchase options
+    const validOptions = newGift.value.purchase_options.filter(o => o.store_name.trim())
+    
+    let finalImageUrl = newGift.value.image_url || null
+
+    if (selectedFile.value) {
+      const fileExt = selectedFile.value.name.split('.').pop()
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+      const { error: uploadError } = await supabase.storage.from('gifts').upload(fileName, selectedFile.value)
+      
+      if (uploadError) throw uploadError
+      
+      const { data: publicUrlData } = supabase.storage.from('gifts').getPublicUrl(fileName)
+      finalImageUrl = publicUrlData.publicUrl
+    }
+    
+    let err = null
+    
+    if (editingId.value) {
+      const res = await supabase.from('gifts').update({
+        name: newGift.value.name,
+        description: newGift.value.description,
+        price: newGift.value.price || null,
+        image_url: finalImageUrl,
+        purchase_options: validOptions
+      }).eq('id', editingId.value)
+      err = res.error
+    } else {
+      const res = await supabase.from('gifts').insert([{
+        name: newGift.value.name,
+        description: newGift.value.description,
+        price: newGift.value.price || null,
+        image_url: finalImageUrl,
+        purchase_options: validOptions
+      }])
+      err = res.error
+    }
+    
     if (err) throw err
     
-    newGift.value = { name: '', description: '', price: undefined, icon: 'i-lucide-gift' }
+    cancelEdit()
     await fetchGifts()
   } catch (err: any) {
-    alert('Error al crear: ' + err.message)
+    showAlert('Error', err.message, true)
   } finally {
-    creating.value = false
+    saving.value = false
   }
 }
 
-async function handleDelete(id: string) {
-  if(!confirm('Segur que vols esborrar aquest regal de forma permanent?')) return
-  try {
-    const supabase = auth.getClient()
-    if(!supabase) return
-    const { error: err } = await supabase.from('gifts').delete().eq('id', id)
-    if (err) throw err
-    await fetchGifts()
-  } catch (err: any) {
-    alert('Error al esborrar: ' + err.message)
-  }
+function handleDelete(id: string) {
+  showConfirm(
+    'Eliminar Regal',
+    'Segur que vols esborrar aquest regal de forma permanent?',
+    'Eliminar',
+    'red',
+    async () => {
+      const supabase = auth.getClient()
+      if(!supabase) return
+      const { error: err } = await supabase.from('gifts').delete().eq('id', id)
+      if (err) throw err
+      await fetchGifts()
+    }
+  )
 }
 
-async function handleUnassign(id: string) {
-  if(!confirm('Segur que vols alliberar aquesta reserva i que torni a estar disponible?')) return
-  try {
-    const supabase = auth.getClient()
-    if(!supabase) return
-    const { error: err } = await supabase.from('gifts').update({
-      assigned_to: null,
-      guest_message: null,
-      assigned_at: null
-    }).eq('id', id)
-    
-    if (err) throw err
-    await fetchGifts()
-  } catch (err: any) {
-    alert('Error al alliberar: ' + err.message)
-  }
+function handleUnassign(id: string) {
+  showConfirm(
+    'Alliberar Reserva',
+    'Segur que vols alliberar aquesta reserva i que torni a estar disponible?',
+    'Alliberar',
+    'warning',
+    async () => {
+      const supabase = auth.getClient()
+      if(!supabase) return
+      const { error: err } = await supabase.from('gifts').update({
+        assigned_to: null,
+        guest_message: null,
+        assigned_at: null
+      }).eq('id', id)
+      if (err) throw err
+      await fetchGifts()
+    }
+  )
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(251,113,133,0.16),_transparent_28%),linear-gradient(180deg,_#fffaf2_0%,_#fffdf8_45%,_#fff7ed_100%)] text-stone-900">
+  <div v-if="!isReady" class="flex min-h-[100dvh] items-center justify-center bg-[#fffaf2]">
+    <div class="flex flex-col items-center gap-4">
+      <UIcon name="i-lucide-loader-2" class="h-10 w-10 animate-spin text-amber-500" />
+      <span class="text-sm font-medium tracking-widest text-amber-900/60 uppercase">Carregant Admin...</span>
+    </div>
+  </div>
+
+  <div v-else class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(251,113,133,0.16),_transparent_28%),linear-gradient(180deg,_#fffaf2_0%,_#fffdf8_45%,_#fff7ed_100%)] text-stone-900">
     <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       
       <header class="mb-8 flex flex-col gap-5 rounded-[2rem] border border-white/70 bg-white/75 px-6 py-5 shadow-[0_24px_80px_-40px_rgba(120,53,15,0.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
@@ -114,7 +299,7 @@ async function handleUnassign(id: string) {
             </UBadge>
           </div>
           <h1 class="text-3xl font-extrabold tracking-tight text-stone-900">
-            Gestió de Regals
+            Panell General
           </h1>
         </div>
         <div>
@@ -165,30 +350,100 @@ async function handleUnassign(id: string) {
 
         <UCard class="rounded-[2rem] border-0 bg-white/80 shadow-[0_24px_80px_-42px_rgba(120,53,15,0.45)] backdrop-blur">
           <div class="mb-5">
-            <p class="text-sm uppercase tracking-[0.28em] text-amber-700">Nou registre</p>
-            <h3 class="mt-2 text-xl font-bold text-stone-900">Afegir Regal</h3>
+            <p class="text-sm uppercase tracking-[0.28em] text-amber-700">Dades globals</p>
+            <h3 class="mt-2 text-xl font-bold text-stone-900">Configuració de l'Esdeveniment</h3>
           </div>
           
-          <form @submit.prevent="handleCreate" class="grid gap-4 sm:grid-cols-2">
+          <form v-if="settings" @submit.prevent="handleSaveSettings" class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Nom de l'infant</label>
+              <UInput v-model="settings.child_name" color="neutral" required />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Data i Hora</label>
+              <UInput v-model="localEventDate" type="datetime-local" icon="i-lucide-calendar" color="neutral" required />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-sm font-medium text-stone-700">Lloc de la cerimònia</label>
+              <UInput v-model="settings.ceremony_location" color="neutral" required />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-sm font-medium text-stone-700">Lloc del convit / restaurant</label>
+              <UInput v-model="settings.restaurant_location" color="neutral" required />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Pares / Contacte (ex: Ana i Vicent)</label>
+              <UInput v-model="settings.contact_parents" color="neutral" required />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Telèfon de contacte</label>
+              <UInput v-model="settings.contact_phone" color="neutral" required />
+            </div>
+
+            <div class="mt-4 sm:col-span-2">
+              <UButton type="submit" size="lg" color="primary" icon="i-lucide-save" :loading="settingsSaving">
+                Guardar configuració global
+              </UButton>
+            </div>
+          </form>
+        </UCard>
+
+        <UCard class="rounded-[2rem] border-0 bg-white/80 shadow-[0_24px_80px_-42px_rgba(120,53,15,0.45)] backdrop-blur transition-all" :class="editingId ? 'ring-2 ring-indigo-500 shadow-indigo-500/20' : ''">
+          <div class="mb-5 flex justify-between items-center">
+            <div>
+              <p class="text-sm uppercase tracking-[0.28em] text-amber-700">{{ editingId ? 'Edició' : 'Nou registre' }}</p>
+              <h3 class="mt-2 text-xl font-bold text-stone-900">{{ editingId ? 'Editar Regal' : 'Afegir Regal' }}</h3>
+            </div>
+            <UButton v-if="editingId" color="neutral" variant="ghost" icon="i-lucide-x" @click="cancelEdit" />
+          </div>
+          
+          <form @submit.prevent="handleSave" class="grid gap-4 sm:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm font-medium text-stone-700">Nom</label>
               <UInput v-model="newGift.name" color="neutral" placeholder="Ex. Bicicleta" required />
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-stone-700">Preu (€)</label>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Preu estimat (€)</label>
               <UInput v-model.number="newGift.price" type="number" color="neutral" placeholder="Opcional" />
             </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-stone-700">Icona (<a href="https://icones.js.org/" target="_blank" class="underline">Lucide</a>)</label>
-              <UInput v-model="newGift.icon" color="neutral" placeholder="i-lucide-gift" />
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-sm font-medium text-stone-700">Imatge del Regal</label>
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                 <input type="file" accept="image/*" @change="onFileChange" ref="fileInput" class="block w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition-colors" />
+                 <span class="text-sm font-medium text-stone-400">o via URL directe:</span>
+                 <UInput v-model="newGift.image_url" color="neutral" placeholder="https://..." class="w-full sm:w-1/2" />
+              </div>
             </div>
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm font-medium text-stone-700">Descripció</label>
               <UTextarea v-model="newGift.description" color="neutral" placeholder="Descriu el regal breument" required :rows="2" />
             </div>
-            <div class="mt-2 sm:col-span-2">
-              <UButton type="submit" color="primary" icon="i-lucide-plus" :loading="creating">
-                Afegir a la llista
+
+            <div class="sm:col-span-2 mt-4 rounded-[1.5rem] bg-stone-50 p-5 ring-1 ring-stone-200">
+              <div class="mb-3 flex items-center justify-between">
+                <label class="block text-sm font-bold text-stone-800">Opcions de compra (Tendes)</label>
+                <UButton type="button" color="neutral" variant="soft" size="xs" icon="i-lucide-plus" @click="addPurchaseOption">
+                  Afegir tenda
+                </UButton>
+              </div>
+              <div class="space-y-3">
+                <div v-for="(opt, idx) in newGift.purchase_options" :key="idx" class="flex items-start gap-2 bg-white p-3 rounded-xl border border-stone-100 shadow-sm relative">
+                  <div class="grid flex-1 gap-3 sm:grid-cols-3">
+                    <UInput v-model="opt.store_name" size="sm" color="neutral" placeholder="Nom botiga (ex: Amazon)" />
+                    <UInput v-model.number="opt.price" size="sm" type="number" color="neutral" placeholder="Preu aquí (€)" />
+                    <UInput v-model="opt.link" size="sm" color="neutral" placeholder="Enllaç URL botiga" />
+                  </div>
+                  <UButton type="button" color="error" variant="ghost" size="sm" icon="i-lucide-x" @click="removePurchaseOption(idx)" />
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 sm:col-span-2 flex flex-col sm:flex-row gap-3">
+              <UButton type="submit" size="lg" color="primary" :icon="editingId ? 'i-lucide-save' : 'i-lucide-plus'" :loading="saving">
+                {{ editingId ? 'Guardar canvis' : 'Crear i afegir a la llista' }}
+              </UButton>
+              <UButton v-if="editingId" type="button" size="lg" color="neutral" variant="soft" @click="cancelEdit">
+                Cancel·lar edició
               </UButton>
             </div>
           </form>
@@ -213,35 +468,55 @@ async function handleUnassign(id: string) {
              <div 
                v-for="gift in gifts" 
                :key="gift.id" 
-               class="flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-5 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-white/10"
+               class="flex flex-col gap-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-5 text-stone-200 sm:flex-row sm:items-start transition-colors hover:bg-white/10"
              >
+                <div class="shrink-0">
+                  <div v-if="gift.image_url" class="h-20 w-20 overflow-hidden rounded-2xl ring-1 ring-white/20">
+                     <img :src="gift.image_url" class="h-full w-full object-cover" />
+                  </div>
+                  <div v-else class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/10 text-stone-400">
+                     <UIcon name="i-lucide-image" class="h-8 w-8" />
+                  </div>
+                </div>
+
                 <div class="flex-1">
                   <div class="mb-2 flex items-center gap-3">
-                     <div class="rounded-xl bg-white/10 p-2 text-amber-200">
-                        <UIcon :name="gift.icon || 'i-lucide-gift'" class="h-5 w-5" />
-                     </div>
                      <h4 class="text-lg font-bold text-stone-100">{{ gift.name }}</h4>
-                     <UBadge v-if="gift.price" color="neutral" variant="subtle" class="ml-2 rounded-full text-xs">
+                     <UBadge v-if="gift.price" color="neutral" variant="subtle" class="rounded-full text-xs">
                         {{ gift.price }} €
                      </UBadge>
                   </div>
-                  <p class="mb-3 pl-12 text-sm text-stone-300">{{ gift.description }}</p>
+                  <p class="mb-3 text-sm text-stone-400">{{ gift.description }}</p>
 
-                  <div v-if="gift.assigned_to" class="ml-12 inline-flex flex-col gap-1 rounded-xl bg-amber-500/10 p-3 pr-6 text-sm ring-1 ring-amber-500/20">
+                  <div v-if="gift.purchase_options && gift.purchase_options.length > 0" class="mb-4 text-xs">
+                    <p class="font-semibold uppercase tracking-wider text-amber-200/60 mb-2">Tendes sugerides:</p>
+                    <div class="flex flex-wrap gap-2">
+                       <span v-for="(opt, i) in gift.purchase_options" :key="i" class="inline-flex items-center gap-1.5 rounded-lg bg-black/30 px-2.5 py-1 text-stone-300 ring-1 ring-white/10">
+                         <UIcon name="i-lucide-shopping-bag" class="h-3 w-3 text-amber-500" />
+                         {{ opt.store_name }}
+                         <span v-if="opt.price" class="text-stone-400">({{ opt.price }}€)</span>
+                       </span>
+                    </div>
+                  </div>
+
+                  <div v-if="gift.assigned_to" class="inline-flex flex-col gap-1 rounded-xl bg-amber-500/10 p-3 pr-6 text-sm ring-1 ring-amber-500/20">
                      <span class="font-medium text-amber-200">
                        <UIcon name="i-lucide-user-check" class="mr-1 inline -translate-y-[1px] h-4 w-4" /> 
                        Reservat per: {{ gift.assigned_to }}
                      </span>
-                     <span v-if="gift.guest_message" class="mt-1 pl-5 italic text-amber-200/70">"{{ gift.guest_message }}"</span>
-                     <span class="mt-1 pl-5 text-xs text-amber-200/50">{{ new Date(gift.assigned_at).toLocaleString() }}</span>
+                     <span v-if="gift.guest_message" class="mt-1 border-l-2 border-amber-500/30 pl-3 italic text-amber-200/70">"{{ gift.guest_message }}"</span>
+                     <span class="mt-1 text-xs text-amber-200/50">{{ new Date(gift.assigned_at).toLocaleString() }}</span>
                   </div>
-                  <div v-else class="ml-12 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-sm text-emerald-400 ring-1 ring-emerald-500/20">
+                  <div v-else class="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-sm text-emerald-400 ring-1 ring-emerald-500/20">
                      <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
                      Disponible
                   </div>
                 </div>
 
                 <div class="flex shrink-0 gap-2 sm:flex-col items-end">
+                   <UButton color="neutral" variant="subtle" size="xs" icon="i-lucide-pencil" @click="handleEdit(gift)">
+                      Editar
+                   </UButton>
                    <UButton v-if="gift.assigned_to" color="warning" variant="subtle" size="xs" icon="i-lucide-unlock" @click="handleUnassign(gift.id)">
                       Alliberar
                    </UButton>
@@ -252,8 +527,22 @@ async function handleUnassign(id: string) {
              </div>
           </div>
         </UCard>
-
       </div>
+      
+      <!-- Modals -->
+      <UModal v-model:open="confirmModal.isOpen" :title="confirmModal.title" :description="confirmModal.description" overlay>
+        <template #footer>
+          <div class="flex justify-end gap-3 w-full">
+            <UButton color="neutral" variant="ghost" @click="confirmModal.isOpen = false">
+              Cancel·lar
+            </UButton>
+            <UButton :color="confirmModal.color" :loading="confirmLoading" @click="handleConfirmSubmit">
+              {{ confirmModal.confirmText }}
+            </UButton>
+          </div>
+        </template>
+      </UModal>
+
     </div>
   </div>
 </template>

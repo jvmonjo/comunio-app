@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { GiftItem } from '~/composables/useGiftRegistry'
 
+const { settings, fetchSettings } = useEventSettings()
+
 useSeoMeta({
-  title: 'Primera Comunio de Marc',
+  title: computed(() => `Primera Comunio de ${settings.value.child_name}`),
   description: 'Landing page amb informació de l\'esdeveniment i reserva de regals.'
 })
 
-const eventDate = new Date('2026-05-17T12:00:00+02:00')
+const eventDate = computed(() => new Date(settings.value.event_date))
 
 const {
   gifts,
@@ -39,7 +41,7 @@ const reservedGifts = computed(() =>
 )
 
 const countdown = computed(() => {
-  const distance = eventDate.getTime() - now.value
+  const distance = eventDate.value.getTime() - now.value
 
   if (distance <= 0) {
     return { days: 0, hours: 0, minutes: 0 }
@@ -58,6 +60,13 @@ function formatEventDate(date: Date) {
     timeStyle: 'short'
   }).format(date)
 }
+
+const formattedDateLong = computed(() =>
+  new Intl.DateTimeFormat('ca-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(eventDate.value)
+)
+const formattedTime = computed(() =>
+  new Intl.DateTimeFormat('ca-ES', { hour: '2-digit', minute: '2-digit' }).format(eventDate.value)
+)
 
 function selectGift(gift: GiftItem) {
   if (gift.assigned_to) {
@@ -110,8 +119,12 @@ async function handleReserveGift() {
   selectedGiftId.value = null
 }
 
+const isReady = ref(false)
+
 onMounted(async () => {
-  await fetchGifts()
+  await Promise.all([fetchSettings(), fetchGifts()])
+  isReady.value = true
+  
   timer = setInterval(() => {
     now.value = Date.now()
   }, 1000 * 30)
@@ -125,24 +138,30 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(251,113,133,0.16),_transparent_28%),linear-gradient(180deg,_#fffaf2_0%,_#fffdf8_45%,_#fff7ed_100%)] text-stone-900">
-    <div class="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
-      <header class="mb-8 flex flex-col gap-5 rounded-[2rem] border border-white/70 bg-white/75 px-6 py-5 shadow-[0_24px_80px_-40px_rgba(120,53,15,0.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+  <div v-if="!isReady" class="flex min-h-[100dvh] items-center justify-center bg-[#fffaf2]">
+    <div class="flex flex-col items-center gap-4">
+      <UIcon name="i-lucide-loader-2" class="h-10 w-10 animate-spin text-amber-500" />
+      <span class="text-sm font-medium tracking-widest text-amber-900/60 uppercase">Carregant...</span>
+    </div>
+  </div>
+
+  <div v-else
+    class="min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(251,113,133,0.16),_transparent_28%),linear-gradient(180deg,_#fffaf2_0%,_#fffdf8_45%,_#fff7ed_100%)] text-stone-900">
+    <div class="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col px-4 pt-6 pb-32 sm:px-6 lg:px-8">
+      <header
+        class="mb-8 flex flex-col gap-5 rounded-[2rem] border border-white/70 bg-white/75 px-6 py-5 shadow-[0_24px_80px_-40px_rgba(120,53,15,0.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="mb-2 flex items-center gap-3">
             <UBadge color="warning" variant="soft" size="lg" class="rounded-full px-3 py-1">
               Primera Comunio
             </UBadge>
-            <UBadge
-              :color="isConfigured ? 'success' : 'neutral'"
-              variant="subtle"
-              class="rounded-full px-3 py-1"
-            >
-              {{ isConfigured ? 'Supabase connectat' : 'Mode demo' }}
+            <UBadge v-if="!isConfigured" color="neutral" variant="subtle" class="rounded-full px-3 py-1">
+              Mode demo
             </UBadge>
           </div>
           <h1 class="max-w-2xl text-4xl font-extrabold tracking-tight text-stone-900 sm:text-5xl">
-            Marc celebra un dia molt especial i ens encantaria compartir-lo amb tu.
+            <span class="text-amber-600">{{ settings.child_name }}</span> celebra un dia molt especial i ens encantaria
+            compartir-lo amb tu.
           </h1>
         </div>
 
@@ -163,20 +182,23 @@ onBeforeUnmount(() => {
       </header>
 
       <section class="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-        <UCard class="overflow-hidden rounded-[2rem] border-0 bg-stone-950 text-stone-50 shadow-[0_28px_90px_-45px_rgba(28,25,23,0.95)]">
+        <UCard
+          class="overflow-hidden rounded-[2rem] border-0 bg-stone-950 text-stone-50 shadow-[0_28px_90px_-45px_rgba(28,25,23,0.95)]">
           <div class="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
             <div class="space-y-6">
-              <div class="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-sm text-amber-100">
+              <div
+                class="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-sm text-amber-100">
                 <UIcon name="i-lucide-sparkles" class="h-4 w-4" />
-                Una celebració menuda, càlida i familiar
+                Una celebració càlida i familiar
               </div>
 
               <div>
                 <p class="mb-3 text-sm uppercase tracking-[0.28em] text-amber-200/70">
-                  Diumenge 17 de maig de 2026
+                  {{ formattedDateLong }}
                 </p>
                 <p class="max-w-xl text-lg leading-8 text-stone-200">
-                  T’esperem a la parròquia de Sant Joan a les 12:00 i després continuarem la festa al jardí de la família amb dinar, música i una vesprada tranquil·la.
+                  T’esperem a la {{ settings.ceremony_location }} a les {{ formattedTime }} i després continuarem la
+                  festa {{ settings.restaurant_location }}.
                 </p>
               </div>
 
@@ -198,12 +220,13 @@ onBeforeUnmount(() => {
                     </div>
                     <div class="text-sm font-semibold uppercase tracking-[0.18em] text-stone-300">Ubicació</div>
                   </div>
-                  <p class="text-base text-stone-100">Parròquia de Sant Joan, Alzira</p>
+                  <p class="text-base text-stone-100">{{ settings.ceremony_location }}</p>
                 </div>
               </div>
             </div>
 
-            <div class="flex flex-col justify-between rounded-[1.75rem] bg-[linear-gradient(180deg,rgba(251,191,36,0.14),rgba(251,146,60,0.04))] p-6 ring-1 ring-white/10">
+            <div
+              class="flex flex-col justify-between rounded-[1.75rem] bg-[linear-gradient(180deg,rgba(251,191,36,0.14),rgba(251,146,60,0.04))] p-6 ring-1 ring-white/10">
               <div>
                 <p class="text-sm uppercase tracking-[0.28em] text-amber-100/80">Informació pràctica</p>
                 <ul class="mt-5 space-y-4 text-sm leading-7 text-stone-200">
@@ -224,13 +247,14 @@ onBeforeUnmount(() => {
 
               <div class="mt-8 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-sm text-stone-200">
                 <p class="font-semibold text-white">Contacte familiar</p>
-                <p class="mt-2">Ana i Vicent · +34 600 123 123</p>
+                <p class="mt-2">{{ settings.contact_parents }} · {{ settings.contact_phone }}</p>
               </div>
             </div>
           </div>
         </UCard>
 
-        <UCard class="rounded-[2rem] border-0 bg-white/80 shadow-[0_24px_80px_-42px_rgba(120,53,15,0.45)] backdrop-blur">
+        <UCard
+          class="rounded-[2rem] border-0 bg-white/80 shadow-[0_24px_80px_-42px_rgba(120,53,15,0.45)] backdrop-blur">
           <div class="space-y-5">
             <div>
               <p class="text-sm uppercase tracking-[0.28em] text-amber-700">Resum</p>
@@ -248,23 +272,17 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <div class="rounded-[1.5rem] bg-stone-50 p-4 ring-1 ring-stone-200">
+            <div v-if="!isConfigured" class="rounded-[1.5rem] bg-stone-50 p-4 ring-1 ring-stone-200">
               <p class="text-sm font-medium text-stone-800">
-                {{ isConfigured ? 'Les reserves es guarden en Supabase.' : 'Sense variables d’entorn, la pàgina funciona en mode demostració.' }}
+                Sense variables d’entorn, la pàgina funciona en mode demostració.
               </p>
               <p class="mt-2 text-sm text-stone-600">
                 Això et permet revisar el disseny i el flux abans de connectar la base de dades real.
               </p>
             </div>
 
-            <UButton
-              block
-              color="neutral"
-              variant="subtle"
-              icon="i-lucide-refresh-cw"
-              :loading="isLoading"
-              @click="fetchGifts"
-            >
+            <UButton block color="neutral" variant="subtle" icon="i-lucide-refresh-cw" :loading="isLoading"
+              @click="fetchGifts">
               Actualitzar llista
             </UButton>
           </div>
@@ -285,47 +303,64 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
-            <UCard
-              v-for="gift in gifts"
-              :key="gift.id"
+            <UCard v-for="gift in gifts" :key="gift.id"
               class="rounded-[1.75rem] border-0 shadow-[0_20px_60px_-36px_rgba(120,53,15,0.35)] transition-transform duration-200 hover:-translate-y-1"
-              :class="gift.assigned_to ? 'bg-stone-100/90' : 'bg-white/85'"
-            >
+              :class="gift.assigned_to ? 'bg-stone-100/90' : 'bg-white/85'">
               <div class="flex h-full flex-col">
+                <div v-if="gift.image_url" class="-mx-6 -mt-6 mb-5 h-48 sm:h-56 overflow-hidden rounded-t-[1.75rem]">
+                  <img :src="gift.image_url" :alt="gift.name"
+                    class="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                </div>
+
                 <div class="mb-4 flex items-start justify-between gap-4">
                   <div>
                     <div class="mb-2 flex items-center gap-2">
-                      <UBadge
-                        :color="gift.assigned_to ? 'neutral' : 'success'"
-                        variant="subtle"
-                        class="rounded-full"
-                      >
+                      <UBadge :color="gift.assigned_to ? 'neutral' : 'success'" variant="subtle" class="rounded-full">
                         {{ gift.assigned_to ? 'Reservat' : 'Disponible' }}
                       </UBadge>
                       <span v-if="gift.price" class="text-sm font-semibold text-stone-500">{{ gift.price }} €</span>
                     </div>
                     <h3 class="text-xl font-semibold text-stone-900">{{ gift.name }}</h3>
                   </div>
-                  <div class="rounded-2xl p-3" :class="gift.assigned_to ? 'bg-stone-200 text-stone-500' : 'bg-emerald-100 text-emerald-700'">
-                    <UIcon :name="gift.icon || 'i-lucide-gift'" class="h-5 w-5" />
-                  </div>
                 </div>
 
                 <p class="mb-4 text-sm leading-6 text-stone-600">{{ gift.description }}</p>
 
-                <div v-if="gift.assigned_to" class="mb-5 rounded-[1.25rem] bg-white/70 p-3 text-sm text-stone-600 ring-1 ring-stone-200">
-                  Reservat per <span class="font-semibold text-stone-900">{{ gift.assigned_to }}</span>
+                <div v-if="gift.purchase_options && gift.purchase_options.length > 0" class="mb-5">
+                  <p class="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2">Suggeriments de compra
+                  </p>
+                  <ul class="space-y-2">
+                    <li v-for="(opt, idx) in gift.purchase_options" :key="idx"
+                      class="flex justify-between items-center rounded-xl bg-stone-50 p-3 ring-1 ring-stone-900/5 transition-colors hover:bg-stone-100 text-sm">
+                      <div class="flex items-center gap-2 text-stone-700">
+                        <UIcon name="i-lucide-shopping-bag" class="h-4 w-4 text-amber-500" />
+                        <span class="font-medium">{{ opt.store_name }}</span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <span v-if="opt.price" class="text-stone-500 font-medium">{{ opt.price }} €</span>
+                        <a v-if="opt.link" :href="opt.link" target="_blank" rel="noopener noreferrer"
+                          class="text-amber-600 hover:text-amber-800 transition-colors p-1 rounded-full hover:bg-amber-100 flex items-center justify-center"
+                          title="Veure a la tenda">
+                          <UIcon name="i-lucide-external-link" class="h-4 w-4" />
+                        </a>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                <div v-if="gift.assigned_to"
+                  class="mb-5 flex items-center justify-center gap-2 rounded-[1.25rem] bg-stone-100 p-3 text-sm font-medium text-stone-500 ring-1 ring-stone-200/60">
+                  <UIcon name="i-lucide-lock" class="h-4 w-4" />
+                  Aquest regal ja ha estat reservat
                 </div>
 
                 <div class="mt-auto">
-                  <UButton
-                    block
-                    :color="gift.assigned_to ? 'neutral' : 'primary'"
-                    :variant="gift.assigned_to ? 'subtle' : 'solid'"
-                    :disabled="Boolean(gift.assigned_to)"
-                    @click="selectGift(gift)"
-                  >
-                    {{ selectedGiftId === gift.id ? 'Seleccionat' : (gift.assigned_to ? 'Ja reservat' : 'Seleccionar regal') }}
+                  <UButton block :color="gift.assigned_to ? 'neutral' : 'primary'"
+                    :variant="gift.assigned_to ? 'subtle' : 'solid'" :disabled="Boolean(gift.assigned_to)"
+                    @click="selectGift(gift)">
+                    <span v-if="selectedGiftId === gift.id">Seleccionat</span>
+                    <span v-else-if="gift.assigned_to">Ja reservat</span>
+                    <span v-else>Seleccionar regal</span>
                   </UButton>
                 </div>
               </div>
@@ -334,7 +369,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="lg:sticky lg:top-6 lg:self-start">
-          <UCard class="rounded-[2rem] border-0 bg-stone-950 text-stone-50 shadow-[0_28px_80px_-42px_rgba(28,25,23,0.95)]">
+          <UCard
+            class="rounded-[2rem] border-0 bg-stone-950 text-stone-50 shadow-[0_28px_80px_-42px_rgba(28,25,23,0.95)]">
             <div class="space-y-5">
               <div>
                 <p class="text-sm uppercase tracking-[0.28em] text-amber-200/70">Reserva</p>
@@ -350,56 +386,35 @@ onBeforeUnmount(() => {
                   {{ selectedGift?.name || 'Encara no n’has triat cap' }}
                 </p>
                 <p class="mt-2 text-sm leading-6 text-stone-300">
-                  {{ selectedGift?.description || 'Selecciona un regal disponible de la llista per a completar la reserva.' }}
+                  <span v-if="selectedGift">{{ selectedGift.description }}</span>
+                  <span v-else>Selecciona un regal disponible de la llista per a completar la reserva.</span>
                 </p>
               </div>
 
-              <div
-                v-if="feedback"
-                class="rounded-[1.5rem] p-4 text-sm"
-                :class="feedback.tone === 'success'
-                  ? 'bg-emerald-400/10 text-emerald-100 ring-1 ring-emerald-400/20'
-                  : feedback.tone === 'error'
-                    ? 'bg-red-400/10 text-red-100 ring-1 ring-red-400/20'
-                    : 'bg-white/8 text-stone-100 ring-1 ring-white/10'"
-              >
+              <div v-if="feedback" class="rounded-[1.5rem] p-4 text-sm" :class="feedback.tone === 'success'
+                ? 'bg-emerald-400/10 text-emerald-100 ring-1 ring-emerald-400/20'
+                : feedback.tone === 'error'
+                  ? 'bg-red-400/10 text-red-100 ring-1 ring-red-400/20'
+                  : 'bg-white/8 text-stone-100 ring-1 ring-white/10'">
                 {{ feedback.text }}
               </div>
 
               <div class="space-y-4">
                 <div>
                   <label class="mb-2 block text-sm font-medium text-stone-200">El teu nom</label>
-                  <UInput
-                    v-model="guestName"
-                    size="xl"
-                    color="neutral"
-                    variant="outline"
-                    placeholder="Ex. Maria i Joan"
-                    class="w-full"
-                  />
+                  <UInput v-model="guestName" size="xl" color="neutral" variant="outline" placeholder="Ex. Maria i Joan"
+                    class="w-full" />
                 </div>
 
                 <div>
                   <label class="mb-2 block text-sm font-medium text-stone-200">Missatge opcional</label>
-                  <UTextarea
-                    v-model="guestMessage"
-                    :rows="4"
-                    color="neutral"
-                    variant="outline"
-                    placeholder="Ex. Moltes ganes d’acompanyar-vos en aquest dia."
-                    class="w-full"
-                  />
+                  <UTextarea v-model="guestMessage" :rows="4" color="neutral" variant="outline"
+                    placeholder="Ex. Moltes ganes d’acompanyar-vos en aquest dia." class="w-full" />
                 </div>
               </div>
 
-              <UButton
-                block
-                size="xl"
-                color="warning"
-                icon="i-lucide-check"
-                :loading="isSubmitting"
-                @click="handleReserveGift"
-              >
+              <UButton block size="xl" color="warning" icon="i-lucide-check" :loading="isSubmitting"
+                @click="handleReserveGift">
                 Reservar regal
               </UButton>
             </div>
