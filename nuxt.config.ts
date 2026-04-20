@@ -18,6 +18,8 @@ export default defineNuxtConfig({
     }
   },
 
+  sourcemap: false,
+
   compatibilityDate: '2025-01-15',
 
   eslint: {
