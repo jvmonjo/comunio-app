@@ -83,7 +83,7 @@ export function useGiftRegistry() {
   const isLoading = useState<boolean>('gift-registry:loading', () => false)
   const isSubmitting = useState<boolean>('gift-registry:submitting', () => false)
   const error = useState<string | null>('gift-registry:error', () => null)
-  const client = useState<SupabaseClient | null>('gift-registry:client', () => null)
+  let supabaseClient: SupabaseClient | null = null
 
   const isConfigured = computed(() =>
     Boolean(config.public.supabaseUrl && config.public.supabaseAnonKey)
@@ -94,14 +94,14 @@ export function useGiftRegistry() {
       return null
     }
 
-    if (!client.value) {
-      client.value = createClient(
+    if (!supabaseClient) {
+      supabaseClient = createClient(
         config.public.supabaseUrl,
         config.public.supabaseAnonKey
       )
     }
 
-    return client.value
+    return supabaseClient
   }
 
   async function fetchGifts() {
