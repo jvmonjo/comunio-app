@@ -4,8 +4,13 @@ import type { GiftItem } from '~/composables/useGiftRegistry'
 const { settings, fetchSettings, themeClasses: th } = useEventSettings()
 
 useSeoMeta({
-  title: computed(() => `Primera Comunio de ${settings.value.child_name}`),
-  description: 'Landing page amb informació de l\'esdeveniment i reserva de regals.'
+  title: computed(() => `Primera Comunió de ${settings.value.child_name}`),
+  ogTitle: computed(() => `Primera Comunió de ${settings.value.child_name}`),
+  twitterTitle: computed(() => `Primera Comunió de ${settings.value.child_name}`),
+  description: 'Pàgina web amb informació de l\'esdeveniment i reserva de regals.',
+  ogDescription: 'Pàgina web amb informació de l\'esdeveniment i reserva de regals.',
+  twitterDescription: 'Pàgina web amb informació de l\'esdeveniment i reserva de regals.',
+  twitterCard: 'summary_large_image'
 })
 
 const eventDate = computed(() => new Date(settings.value.event_date))
@@ -119,12 +124,14 @@ async function handleReserveGift() {
   selectedGiftId.value = null
 }
 
-const isReady = ref(false)
+const isReady = ref(true)
 
-onMounted(async () => {
+await useAsyncData('page-init', async () => {
   await Promise.all([fetchSettings(), fetchGifts()])
-  isReady.value = true
+  return true
+})
 
+onMounted(() => {
   timer = setInterval(() => {
     now.value = Date.now()
   }, 1000 * 30)
