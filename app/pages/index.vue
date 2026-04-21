@@ -167,9 +167,10 @@ onBeforeUnmount(() => {
             </UBadge>
           </div>
           <h1 class="max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl" :class="th.inverseText">
-            <span :class="th.heroAccentText">{{ settings.child_name }}</span> celebra un dia molt especial i ens
-            encantaria
-            compartir-lo amb tu.
+            <span class="marker-underline" :class="th.heroAccentText" :style="{ '--marker-color': th.markerColor }">
+              {{ settings.child_name }}
+            </span>
+            celebra un dia molt especial i ens encantaria compartir-lo amb tu.
           </h1>
         </div>
 
@@ -216,8 +217,18 @@ onBeforeUnmount(() => {
                   {{ formattedDateLong }}
                 </p>
                 <p :class="['max-w-xl text-lg leading-8', th.inverseText]">
-                  T’esperem a la {{ settings.ceremony_location }} a les {{ formattedTime }} i després continuarem la
-                  festa {{ settings.restaurant_location }}.
+                  T’esperem a
+                  <a v-if="settings.ceremony_url" :href="settings.ceremony_url" target="_blank"
+                    class="font-semibold underline decoration-dotted underline-offset-4 hover:text-amber-600 transition-colors">
+                    {{ settings.ceremony_location }}
+                  </a>
+                  <span v-else class="font-semibold">{{ settings.ceremony_location }}</span>
+                  a les {{ formattedTime }} i després continuarem la festa
+                  <a v-if="settings.restaurant_url" :href="settings.restaurant_url" target="_blank"
+                    class="font-semibold underline decoration-dotted underline-offset-4 hover:text-amber-600 transition-colors">
+                    {{ settings.restaurant_location }}
+                  </a>
+                  <span v-else class="font-semibold">{{ settings.restaurant_location }}</span>.
                 </p>
               </div>
 
@@ -245,7 +256,14 @@ onBeforeUnmount(() => {
                       Ubicació
                     </div>
                   </div>
-                  <p class="text-base font-medium">
+                  <div v-if="settings.ceremony_url" class="mt-2 text-base font-medium">
+                    <a :href="settings.ceremony_url" target="_blank"
+                      class="inline-flex items-center gap-1.5 text-amber-700 hover:text-amber-800 transition-colors underline underline-offset-4 decoration-amber-700/30">
+                      {{ settings.ceremony_location }}
+                      <UIcon name="i-lucide-external-link" class="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                  <p v-else class="text-base font-medium">
                     {{ settings.ceremony_location }}
                   </p>
                 </div>

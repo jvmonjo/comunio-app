@@ -51,17 +51,10 @@ Si falten, el projecte usa dades demo en memòria.
 
 ## Model de dades
 
-La UI actual espera la taula `public.gifts` amb:
+La UI actual espera dues taules a `public`:
 
-- `id`
-- `name`
-- `description`
-- `price`
-- `icon`
-- `assigned_to`
-- `guest_message`
-- `assigned_at`
-- `created_at`
+1.  **event_settings**: `id`, `child_name`, `event_date`, `ceremony_location`, `ceremony_url`, `restaurant_location`, `restaurant_url`, `contact_parents`, `contact_phone`, `theme`.
+2.  **gifts**: `id`, `name`, `description`, `price`, `image_url`, `purchase_options` (JSONB), `assigned_to`, `guest_message`, `assigned_at`, `created_at`.
 
 La reserva es fa amb una actualització condicionada:
 
@@ -71,9 +64,11 @@ La reserva es fa amb una actualització condicionada:
 
 ## Convencions útils
 
+- El panell d'admin està a `/admin`.
+- En mode demo (sense envs), fes servir `admin@demo.com` / `demo123`.
 - El package manager de referència és `pnpm`.
 - Si toques la lògica de regals, mantín també el mode demo.
-- Si canvies l'esquema de dades, actualitza `README.md`, `.env.example` i `useGiftRegistry.ts`.
+- Si canvies l'esquema de dades, actualitza `README.md` i `AGENTS.md`.
 - Abans de tancar canvis, comprova:
 
 ```bash

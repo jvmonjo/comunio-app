@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 
 const auth = useAdminAuth()
 const { settings, fetchSettings, themeClasses: th } = useEventSettings()
+const registry = useGiftRegistry()
 
 const email = ref('')
 const password = ref('')
@@ -124,7 +125,7 @@ const isReady = ref(false)
 onMounted(async () => {
   if (import.meta.client) {
     const sessionActive = await auth.checkSession()
-    if (sessionActive) {
+    if (sessionActive || auth.user.value?.id === 'demo-user-id') {
       await fetchSettings()
       await fetchGifts()
     }
@@ -158,12 +159,19 @@ async function handleSaveSettings() {
   settingsSaving.value = true
   try {
     const supabase = auth.getClient()
-    if (!supabase) return
+    if (!supabase) {
+      // In demo mode, the settings are already updated in the state via v-model
+      // We just show a success message as it's "persisted" in memory
+      showAlert('Correcte (Demo)', 'Configuració desada en memòria.', false)
+      return
+    }
     const { error: err } = await supabase.from('event_settings').update({
       child_name: settings.value.child_name,
       event_date: settings.value.event_date,
       ceremony_location: settings.value.ceremony_location,
+      ceremony_url: settings.value.ceremony_url,
       restaurant_location: settings.value.restaurant_location,
+      restaurant_url: settings.value.restaurant_url,
       contact_parents: settings.value.contact_parents,
       contact_phone: settings.value.contact_phone,
       theme: settings.value.theme
@@ -181,7 +189,11 @@ async function fetchGifts() {
   giftsLoading.value = true
   try {
     const supabase = auth.getClient()
-    if (!supabase) return
+    if (!supabase) {
+      await registry.fetchGifts()
+      gifts.value = registry.gifts.value
+      return
+    }
     const { data } = await supabase.from('gifts').select('*').order('created_at', { ascending: false })
     gifts.value = data || []
   } finally {
@@ -213,24 +225,48 @@ async function handleSave() {
 
     let err = null
 
-    if (editingId.value) {
-      const res = await supabase.from('gifts').update({
+    if (!supabase) {
+      // Demo logic
+      const giftData: any = {
         name: newGift.value.name,
         description: newGift.value.description,
         price: newGift.value.price || null,
         image_url: finalImageUrl,
-        purchase_options: validOptions
-      }).eq('id', editingId.value)
-      err = res.error
+        purchase_options: validOptions,
+        created_at: new Date().toISOString()
+      }
+
+      if (editingId.value) {
+        const idx = gifts.value.findIndex(g => g.id === editingId.value)
+        if (idx !== -1) {
+          gifts.value[idx] = { ...gifts.value[idx], ...giftData }
+        }
+      } else {
+        giftData.id = Math.random().toString(36).substring(7)
+        gifts.value = [giftData, ...gifts.value]
+      }
+      registry.gifts.value = [...gifts.value]
+      showAlert('Correcte (Demo)', 'Canvis desats en memòria.', false)
     } else {
-      const res = await supabase.from('gifts').insert([{
-        name: newGift.value.name,
-        description: newGift.value.description,
-        price: newGift.value.price || null,
-        image_url: finalImageUrl,
-        purchase_options: validOptions
-      }])
-      err = res.error
+      if (editingId.value) {
+        const res = await supabase.from('gifts').update({
+          name: newGift.value.name,
+          description: newGift.value.description,
+          price: newGift.value.price || null,
+          image_url: finalImageUrl,
+          purchase_options: validOptions
+        }).eq('id', editingId.value)
+        err = res.error
+      } else {
+        const res = await supabase.from('gifts').insert([{
+          name: newGift.value.name,
+          description: newGift.value.description,
+          price: newGift.value.price || null,
+          image_url: finalImageUrl,
+          purchase_options: validOptions
+        }])
+        err = res.error
+      }
     }
 
     if (err) throw err
@@ -252,7 +288,12 @@ function handleDelete(id: string) {
     'error',
     async () => {
       const supabase = auth.getClient()
-      if (!supabase) return
+      if (!supabase) {
+        gifts.value = gifts.value.filter(g => g.id !== id)
+        registry.gifts.value = [...gifts.value]
+        showAlert('Eliminat (Demo)', 'Regal esborrat en memòria.', false)
+        return
+      }
       const { error: err } = await supabase.from('gifts').delete().eq('id', id)
       if (err) throw err
       await fetchGifts()
@@ -268,7 +309,18 @@ function handleUnassign(id: string) {
     'warning',
     async () => {
       const supabase = auth.getClient()
-      if (!supabase) return
+      if (!supabase) {
+        const gift = gifts.value.find(g => g.id === id)
+        if (gift) {
+          gift.assigned_to = null
+          gift.guest_message = null
+          gift.assigned_at = null
+          gifts.value = [...gifts.value]
+          registry.gifts.value = [...gifts.value]
+          showAlert('Alliberat (Demo)', 'Reserva alliberada en memòria.', false)
+        }
+        return
+      }
       const { error: err } = await supabase.from('gifts').update({
         assigned_to: null,
         guest_message: null,
@@ -388,6 +440,17 @@ function handleUnassign(id: string) {
             >
               {{ error }}
             </div>
+
+            <div
+              v-if="!auth.getClient()"
+              class="mt-6 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100"
+            >
+              <p class="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">Mode Demo Actiu</p>
+              <p class="text-xs text-amber-700 leading-relaxed">
+                No s'ha detectat configuració de Supabase. Pots entrar amb:<br>
+                <span class="font-mono font-bold">admin@demo.com</span> / <span class="font-mono font-bold">demo123</span>
+              </p>
+            </div>
           </form>
         </UCard>
       </div>
@@ -452,19 +515,41 @@ function handleUnassign(id: string) {
             </div>
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm font-medium text-stone-700">Lloc de la cerimònia</label>
-              <UInput
-                v-model="settings.ceremony_location"
-                color="neutral"
-                required
-              />
+              <div class="flex flex-col gap-2 sm:flex-row">
+                <UInput
+                  v-model="settings.ceremony_location"
+                  color="neutral"
+                  required
+                  placeholder="Ex. Parròquia de Sant Joan"
+                  class="flex-1"
+                />
+                <UInput
+                  v-model="settings.ceremony_url"
+                  color="neutral"
+                  icon="i-lucide-map-pin"
+                  placeholder="URL Google Maps (opcional)"
+                  class="flex-1"
+                />
+              </div>
             </div>
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm font-medium text-stone-700">Lloc del convit / restaurant</label>
-              <UInput
-                v-model="settings.restaurant_location"
-                color="neutral"
-                required
-              />
+              <div class="flex flex-col gap-2 sm:flex-row">
+                <UInput
+                  v-model="settings.restaurant_location"
+                  color="neutral"
+                  required
+                  placeholder="Ex. Restaurant El Jardí"
+                  class="flex-1"
+                />
+                <UInput
+                  v-model="settings.restaurant_url"
+                  color="neutral"
+                  icon="i-lucide-map-pin"
+                  placeholder="URL Google Maps (opcional)"
+                  class="flex-1"
+                />
+              </div>
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-stone-700">Pares / Contacte (ex: Ana i Vicent)</label>

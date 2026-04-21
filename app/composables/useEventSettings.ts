@@ -8,6 +8,8 @@ export function useEventSettings() {
     event_date: '2026-05-17T12:00:00+02:00',
     ceremony_location: 'Parròquia de Sant Joan, Alzira',
     restaurant_location: 'al jardí de la família amb dinar',
+    ceremony_url: '',
+    restaurant_url: '',
     contact_parents: 'Ana i Vicent',
     contact_phone: '+34 600 123 123',
     theme: 'amber'
@@ -46,7 +48,8 @@ export function useEventSettings() {
         inputColor: 'sky',
         loaderBg: 'bg-sky-50',
         loaderIcon: 'text-sky-500',
-        loaderText: 'text-sky-900'
+        loaderText: 'text-sky-900',
+        markerColor: '#38bdf866' // sky-400 with 40% opacity
       }
     } else if (t === 'pink') {
       return {
@@ -65,7 +68,8 @@ export function useEventSettings() {
         inputColor: 'pink',
         loaderBg: 'bg-pink-50',
         loaderIcon: 'text-pink-500',
-        loaderText: 'text-pink-900'
+        loaderText: 'text-pink-900',
+        markerColor: '#f472b666' // pink-400 with 40% opacity
       }
     }
     return {
@@ -84,7 +88,8 @@ export function useEventSettings() {
       inputColor: 'amber',
       loaderBg: 'bg-[#fffaf2]',
       loaderIcon: 'text-amber-500',
-      loaderText: 'text-amber-900'
+      loaderText: 'text-amber-900',
+      markerColor: '#fbbf2466' // amber-400 with 40% opacity
     }
   })
 
