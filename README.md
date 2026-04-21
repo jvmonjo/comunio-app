@@ -135,21 +135,23 @@ El sistema envia correus automàtics quan:
    ```
 3. (Opcional) Configura `RESEND_FROM_EMAIL` i `SITE_URL` si vols personalitzar el remitent i els links.
 
-### Configurar Webhook (Manual)
-Si estàs en self-hosted, has de crear el webhook manualment (o via SQL) per a que la taula `gifts` cride a la funció:
+### Configurar Webhook (Manual via Web UI)
+Per seguretat i per evitar publicar la teua URL de producció al codi, has de configurar el Webhook manualment des del Dashboard de Supabase:
 
-```sql
--- Exemple de SQL per crear el webhook directament
-create trigger "gift_notifications_webhook"
-after insert or update on "public"."gifts"
-for each row execute function "supabase_functions"."http_request"(
-  'http://localhost:54321/functions/v1/handle-gift-notification',
-  'POST',
-  '{"Content-Type":"application/json", "Authorization": "Bearer LA_TEUA_SERVICE_ROLE_KEY"}',
-  '{}',
-  '1000'
-);
-```
+1. Ves a **Integrations** > **Database Webhooks**.
+2. Fes clic a **Create a new hook**.
+3. Omple els camps:
+   - **Name**: `gift-notifications`
+   - **Table**: `public.gifts`
+   - **Events**: Activa `INSERT` i `UPDATE`.
+4. A la secció **Webhook Configuration**:
+   - **Type**: `HTTP Request`
+   - **Method**: `POST`
+   - **URL**: La URL de la teua funció (ex: `https://.../functions/v1/handle-gift-notification`).
+5. A la secció **HTTP Headers**, afegeix:
+   - `Content-Type`: `application/json`
+   - `Authorization`: `Bearer EL_TEU_SERVICE_ROLE_KEY`
+6. Guarda i activa el webhook.
 
 ## Deploy de Edge Functions (Self-hosted)
 
