@@ -53,7 +53,7 @@ Si falten, el projecte usa dades demo en memòria.
 
 La UI actual espera dues taules a `public`:
 
-1.  **event_settings**: `id`, `child_name`, `event_date`, `ceremony_location`, `ceremony_url`, `restaurant_location`, `restaurant_url`, `contact_parents`, `contact_phone`, `theme`.
+1.  **event_settings**: `id`, `child_name`, `event_date`, `ceremony_location`, `ceremony_url`, `restaurant_location`, `restaurant_url`, `contact_parents`, `contact_phone`, `theme`, `logo_url`.
 2.  **gifts**: `id`, `name`, `description`, `price`, `image_url`, `purchase_options` (JSONB), `assigned_to`, `guest_message`, `assigned_at`, `created_at`.
 
 La reserva es fa amb una actualització condicionada:

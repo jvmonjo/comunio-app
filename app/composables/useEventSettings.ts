@@ -12,7 +12,8 @@ export function useEventSettings() {
     restaurant_url: '',
     contact_parents: 'Ana i Vicent',
     contact_phone: '+34 600 123 123',
-    theme: 'amber'
+    theme: 'amber',
+    logo_url: ''
   }))
 
   function getClient() {

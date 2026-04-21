@@ -30,6 +30,9 @@ const localEventDate = computed({
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
+const selectedLogoFile = ref<File | null>(null)
+const logoInput = ref<HTMLInputElement | null>(null)
+
 const toast = useToast()
 
 const confirmModal = ref({
@@ -87,6 +90,11 @@ const newGift = ref(defaultGift())
 function onFileChange(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   selectedFile.value = file || null
+}
+
+function onLogoChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  selectedLogoFile.value = file || null
 }
 
 function addPurchaseOption() {
@@ -159,9 +167,27 @@ async function handleSaveSettings() {
   settingsSaving.value = true
   try {
     const supabase = auth.getClient()
+    
+    let finalLogoUrl = settings.value.logo_url
+
+    if (selectedLogoFile.value && supabase) {
+      const fileExt = selectedLogoFile.value.name.split('.').pop()
+      const fileName = `logo_${Date.now()}.${fileExt}`
+      const { error: uploadError } = await supabase.storage.from('logos').upload(fileName, selectedLogoFile.value)
+
+      if (uploadError) throw uploadError
+
+      const { data: publicUrlData } = supabase.storage.from('logos').getPublicUrl(fileName)
+      finalLogoUrl = publicUrlData.publicUrl
+      settings.value.logo_url = finalLogoUrl
+    }
+
     if (!supabase) {
       // In demo mode, the settings are already updated in the state via v-model
       // We just show a success message as it's "persisted" in memory
+      if (selectedLogoFile.value) {
+        settings.value.logo_url = URL.createObjectURL(selectedLogoFile.value)
+      }
       showAlert('Correcte (Demo)', 'Configuració desada en memòria.', false)
       return
     }
@@ -174,7 +200,8 @@ async function handleSaveSettings() {
       restaurant_url: settings.value.restaurant_url,
       contact_parents: settings.value.contact_parents,
       contact_phone: settings.value.contact_phone,
-      theme: settings.value.theme
+      theme: settings.value.theme,
+      logo_url: settings.value.logo_url
     }).eq('id', 1)
     if (err) throw err
     showAlert('Correcte', 'Configuració de l\'esdeveniment desada amb èxit.', false)
@@ -495,6 +522,37 @@ function handleUnassign(id: string) {
             class="grid gap-4 sm:grid-cols-2"
             @submit.prevent="handleSaveSettings"
           >
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-sm font-medium text-stone-700">Logo de la web (Sustitueix el text superior)</label>
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div v-if="settings.logo_url" class="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-stone-50">
+                  <img :src="settings.logo_url" class="h-full w-full object-contain p-1">
+                </div>
+                <div v-else class="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-stone-200 bg-stone-50 text-stone-400">
+                  <UIcon name="i-lucide-image" class="h-6 w-6" />
+                </div>
+                <div class="flex-1 space-y-2">
+                  <input
+                    ref="logoInput"
+                    type="file"
+                    accept="image/svg+xml,image/png,image/jpeg"
+                    class="block w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition-colors"
+                    @change="onLogoChange"
+                  >
+                  <p class="text-xs text-stone-500">Formats recomanats: SVG, PNG o JPG amb fons transparent.</p>
+                </div>
+                <UButton
+                  v-if="settings.logo_url"
+                  color="error"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-lucide-trash-2"
+                  @click="settings.logo_url = ''"
+                >
+                  Eliminar logo
+                </UButton>
+              </div>
+            </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-stone-700">Nom de l'infant</label>
               <UInput

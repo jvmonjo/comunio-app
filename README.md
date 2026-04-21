@@ -60,6 +60,7 @@ create table public.event_settings (
   contact_parents text,
   contact_phone text,
   theme text default 'amber',
+  logo_url text,
   created_at timestamptz default now()
 );
 

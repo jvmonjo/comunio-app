@@ -10,7 +10,9 @@ useSeoMeta({
   description: 'Pàgina web amb informació de l\'esdeveniment i reserva de regals.',
   ogDescription: 'Pàgina web amb informació de l\'esdeveniment i reserva de regals.',
   twitterDescription: 'Pàgina web amb informació de l\'esdeveniment i reserva de regals.',
-  twitterCard: 'summary_large_image'
+  twitterCard: 'summary_large_image',
+  ogImage: computed(() => settings.value.logo_url || '/icon.png'),
+  twitterImage: computed(() => settings.value.logo_url || '/icon.png')
 })
 
 const eventDate = computed(() => new Date(settings.value.event_date))
@@ -162,8 +164,12 @@ onBeforeUnmount(() => {
         class="mb-8 flex flex-col gap-5 rounded-[2rem] border border-white/70 bg-white/75 px-6 py-5 shadow-[0_24px_80px_-40px_rgba(120,53,15,0.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="mb-2 flex items-center gap-3">
+            <template v-if="settings.logo_url">
+              <img :src="settings.logo_url" alt="Logo" class="h-16 w-auto object-contain sm:h-24">
+            </template>
             <span
-              :class="['inline-flex items-center rounded-full px-3 py-1 px-3 py-1 text-xs font-medium', th.badgeSoft]">
+              v-else
+              :class="['inline-flex items-center rounded-full px-3 py-1 text-xs font-medium', th.badgeSoft]">
               Primera Comunió
             </span>
             <UBadge v-if="!isConfigured" color="neutral" variant="subtle" class="rounded-full px-3 py-1">
@@ -213,7 +219,7 @@ onBeforeUnmount(() => {
               <div
                 :class="['inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm', th.heroIconBg, th.heroIconColor]">
                 <UIcon name="i-lucide-sparkles" class="h-4 w-4" />
-                Una celebració càlida i familiar
+                Detalls de la celebració
               </div>
 
               <div>
