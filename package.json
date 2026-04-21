@@ -9,7 +9,8 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
-    "generate-icons": "node scripts/generate-icons.js"
+    "generate-icons": "node scripts/generate-icons.js",
+    "deploy-functions": "node scripts/deploy.mjs"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.87",
@@ -23,6 +24,7 @@
     "@nuxt/eslint": "^1.13.0",
     "eslint": "^9.39.2",
     "sharp": "^0.34.5",
+    "ssh2-sftp-client": "^12.1.1",
     "supabase": "^2.92.1",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.4"

@@ -120,3 +120,53 @@ La reserva es fa amb un `update` condicionat:
 ```
 
 Si una altra persona l'ha reservat abans, no s'actualitza cap fila i la UI mostra error.
+
+## Notificacions per correu
+
+El sistema envia correus automàtics quan:
+- Un admin afig un nou regal (notifica a la resta d'admins).
+- Un convidat reserva un regal (notifica a tots els admins).
+
+### Configuració de Resend
+1. Crea un compte a [Resend](https://resend.com).
+2. Afig la clau API com a secret a Supabase:
+   ```bash
+   npx supabase secrets set RESEND_API_KEY=re_your_key
+   ```
+3. (Opcional) Configura `RESEND_FROM_EMAIL` i `SITE_URL` si vols personalitzar el remitent i els links.
+
+### Configurar Webhook (Manual)
+Si estàs en self-hosted, has de crear el webhook manualment (o via SQL) per a que la taula `gifts` cride a la funció:
+
+```sql
+-- Exemple de SQL per crear el webhook directament
+create trigger "gift_notifications_webhook"
+after insert or update on "public"."gifts"
+for each row execute function "supabase_functions"."http_request"(
+  'http://localhost:54321/functions/v1/handle-gift-notification',
+  'POST',
+  '{"Content-Type":"application/json", "Authorization": "Bearer LA_TEUA_SERVICE_ROLE_KEY"}',
+  '{}',
+  '1000'
+);
+```
+
+## Deploy de Edge Functions (Self-hosted)
+
+Hem inclòs un script de Node.js per fer deploy de les funcions al teu servidor via SFTP.
+
+### Requisits
+- Accés SSH per clau al servidor (el script buscarà la clau per defecte a `~/.ssh`).
+- Les dependències de desenvolupament instal·lades (`pnpm install`).
+
+### Com fer el deploy
+1. Crea un fitxer `.env.deploy` a l'arrel (no es puja al git):
+   ```bash
+   DEPLOY_HOST=el-teu-servidor.com
+   DEPLOY_USER=root
+   DEPLOY_PATH=/ruta/al/volum/de/functions
+   ```
+2. Executa el script via pnpm:
+   ```bash
+   pnpm deploy-functions
+   ```
