@@ -78,8 +78,12 @@ function selectGift(gift: GiftItem) {
     return
   }
 
-  selectedGiftId.value = gift.id
-  feedback.value = null
+  if (selectedGiftId.value === gift.id) {
+    selectedGiftId.value = null
+  } else {
+    selectedGiftId.value = gift.id
+    feedback.value = null
+  }
 }
 
 async function handleReserveGift() {
@@ -370,8 +374,11 @@ onBeforeUnmount(() => {
 
           <div class="grid gap-4 md:grid-cols-2">
             <UCard v-for="gift in gifts" :key="gift.id"
-              class="rounded-[1.75rem] border-0 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] ring-1 ring-black/5 transition-transform duration-200 hover:-translate-y-1"
-              :class="gift.assigned_to ? 'bg-black/5' : 'bg-white'">
+              class="rounded-[1.75rem] border-0 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] ring-1 transition-all duration-250 hover:-translate-y-1"
+              :class="[
+                gift.assigned_to ? 'bg-black/5 ring-black/5 opacity-80' :
+                  selectedGiftId === gift.id ? 'bg-amber-50/50 ring-amber-500/50 -translate-y-1 shadow-[0_24px_80px_-20px_rgba(245,158,11,0.2)]' : 'bg-white ring-black/5'
+              ]">
               <div class="flex h-full flex-col">
                 <div v-if="gift.image_url" class="-mx-6 -mt-6 mb-5 h-48 sm:h-56 overflow-hidden rounded-t-[1.75rem]">
                   <img :src="gift.image_url" :alt="gift.name"
@@ -427,10 +434,12 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="mt-auto">
-                  <UButton block :color="gift.assigned_to ? 'neutral' : th.btnPrimary as any"
-                    :variant="gift.assigned_to ? 'subtle' : 'solid'" :disabled="Boolean(gift.assigned_to)"
+                  <UButton block :color="(gift.assigned_to ? 'neutral' : (selectedGiftId === gift.id ? 'warning' : th.btnPrimary)) as any"
+                    :variant="gift.assigned_to || selectedGiftId === gift.id ? 'subtle' : 'solid'"
+                    :disabled="Boolean(gift.assigned_to)"
+                    :icon="selectedGiftId === gift.id ? 'i-lucide-x' : ''"
                     @click="selectGift(gift)">
-                    <span v-if="selectedGiftId === gift.id">Seleccionat</span>
+                    <span v-if="selectedGiftId === gift.id">Desseleccionar</span>
                     <span v-else-if="gift.assigned_to">Ja reservat</span>
                     <span v-else>Seleccionar regal</span>
                   </UButton>
@@ -455,13 +464,18 @@ onBeforeUnmount(() => {
                 </p>
               </div>
 
-              <div class="rounded-[1.5rem] bg-black/5 ring-1 ring-black/5 p-4">
+              <div class="rounded-[1.5rem] bg-black/5 ring-1 ring-black/5 p-4 relative group">
                 <p :class="['text-xs uppercase tracking-[0.22em] font-medium', th.subText]">
                   Regal seleccionat
                 </p>
-                <p :class="['mt-2 text-lg font-bold', th.inverseText]">
-                  {{ selectedGift?.name || 'Encara no n’has triat cap' }}
-                </p>
+                <div class="flex items-start justify-between gap-2 mt-2">
+                  <p :class="['text-lg font-bold leading-tight', th.inverseText]">
+                    {{ selectedGift?.name || 'Encara no n’has triat cap' }}
+                  </p>
+                  <UButton v-if="selectedGift" color="neutral" variant="ghost" icon="i-lucide-x" size="xs"
+                    class="rounded-full -mt-1 -mr-1 hover:bg-black/10" @click="selectedGiftId = null"
+                    title="Treure selecció" />
+                </div>
                 <p :class="['mt-2 text-sm leading-6', th.subText]">
                   <span v-if="selectedGift">{{ selectedGift.description }}</span>
                   <span v-else>Selecciona un regal disponible de la llista per a completar la reserva.</span>
