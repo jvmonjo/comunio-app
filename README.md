@@ -129,11 +129,12 @@ El sistema envia correus automàtics quan:
 
 ### Configuració de Resend
 1. Crea un compte a [Resend](https://resend.com).
-2. Afig la clau API com a secret a Supabase:
+2. Afig les variables d'entorn a Supabase en la secció del servei Functions:
    ```bash
-   npx supabase secrets set RESEND_API_KEY=re_your_key
+   RESEND_API_KEY=re_your_key
+   RESEND_FROM_EMAIL=[EMAIL_ADDRESS]
+   SITE_URL=https://your-site.com
    ```
-3. (Opcional) Configura `RESEND_FROM_EMAIL` i `SITE_URL` si vols personalitzar el remitent i els links.
 
 ### Configurar Webhook (Manual via Web UI)
 Per seguretat i per evitar publicar la teua URL de producció al codi, has de configurar el Webhook manualment des del Dashboard de Supabase:
