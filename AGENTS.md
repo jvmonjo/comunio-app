@@ -2,7 +2,7 @@
 
 ## Resum del projecte
 
-Aquest repositori conté una web app feta amb `Nuxt 4` per a una **landing de primera comunio**. El producte actual està centrat en un únic flux:
+Aquest repositori conté una web app feta amb `Nuxt 4` per a una **landing de primera comunió**. El producte actual està centrat en un únic flux:
 
 - mostrar la informació de l'esdeveniment
 - mostrar una llista de regals

@@ -46,7 +46,7 @@ const demoGifts: GiftItem[] = [
   {
     id: 'watch',
     name: 'Rellotge',
-    description: 'Un record especial del dia de la comunio.',
+    description: 'Un record especial del dia de la comunió.',
     price: 120,
     image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80',
     purchase_options: [{ store_name: 'Rellotgeria local', price: 120 }],
