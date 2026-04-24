@@ -13,6 +13,10 @@ export default defineNuxtConfig({
     baseURL: process.env.NUXT_APP_BASE_URL || '/'
   },
 
+  nitro: {
+    baseURL: process.env.NUXT_APP_BASE_URL || '/'
+  },
+
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {

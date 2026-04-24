@@ -32,7 +32,8 @@ jobs:
       - name: Generate static site
         run: pnpm exec nuxt generate
         env:
-          # Empty values to ensure demo mode
+          # S'ajusta automàticament al nom del repositori per a GitHub Pages
+          NUXT_APP_BASE_URL: "/comunio-app/"
           NUXT_PUBLIC_SUPABASE_URL: ""
           NUXT_PUBLIC_SUPABASE_ANON_KEY: ""
 
