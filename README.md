@@ -26,11 +26,37 @@ cp .env.example .env
 pnpm dev
 ```
 
+## Desenvolupament Local (Supabase CLI)
+
+Aquest projecte està preparat per treballar amb l'entorn local de Supabase per evitar embrutar la base de dades de producció durant el desenvolupament.
+
+### 1. Requisits
+- [Docker](https://www.docker.com/) instal·lat i en execució.
+- [Supabase CLI](https://supabase.com/docs/guides/cli) instal·lada.
+
+### 2. Flux de treball
+```bash
+# Iniciar els serveis (DB, Auth, Storage, Studio)
+supabase start
+
+# Veure les claus locals (per posar al .env)
+supabase status
+
+# Aturar els serveis quan acabis
+supabase stop
+```
+
+L'interfície de gestió (Studio) estarà disponible per defecte a [http://localhost:54323](http://localhost:54323).
+
+### 3. Migracions i Esquema
+Un cop iniciat Supabase en local, pots executar les consultes SQL de la secció "Esquema SQL complet" directament al SQL Editor del teu Studio local per crear les taules i polítiques necessàries.
+
 ## Variables d'entorn
 
 ```bash
 NUXT_PUBLIC_SUPABASE_URL=
 NUXT_PUBLIC_SUPABASE_ANON_KEY=
+NUXT_APP_BASE_URL= # Opcional: defineix el subpath (ex: /comunio-app/)
 ```
 
 Si no les poses, la web funciona en mode demo amb dades en memòria.
