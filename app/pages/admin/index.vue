@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import Sortable from 'sortablejs'
 
 const auth = useAdminAuth()
 const { settings, fetchSettings, themeClasses: th } = useEventSettings()
@@ -15,6 +16,10 @@ const giftsLoading = ref(false)
 const saving = ref(false)
 const settingsSaving = ref(false)
 const editingId = ref<string | null>(null)
+const giftListRef = ref<HTMLElement | null>(null)
+const purchaseOptionsRef = ref<HTMLElement | null>(null)
+let giftSortable: Sortable | null = null
+let purchaseSortable: Sortable | null = null
 
 const localEventDate = computed({
   get() {
@@ -141,7 +146,75 @@ onMounted(async () => {
     }
   }
   isReady.value = true
+  nextTick(() => {
+    initGiftsSortable()
+  })
 })
+
+watch(editingId, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      initPurchaseOptionsSortable()
+    })
+  } else {
+    purchaseSortable?.destroy()
+    purchaseSortable = null
+  }
+})
+
+function initGiftsSortable() {
+  if (!giftListRef.value) return
+  if (giftSortable) giftSortable.destroy()
+
+  giftSortable = Sortable.create(giftListRef.value, {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'opacity-50',
+    onEnd: async (evt) => {
+      if (evt.oldIndex === undefined || evt.newIndex === undefined || evt.oldIndex === evt.newIndex) return
+
+      const movedGifts = [...gifts.value]
+      const [item] = movedGifts.splice(evt.oldIndex, 1)
+      movedGifts.splice(evt.newIndex, 0, item)
+      
+      // Update local state immediately for smoothness
+      gifts.value = movedGifts
+
+      // Sync with registry in demo mode
+      if (!auth.getClient()) {
+        registry.gifts.value = movedGifts
+      }
+
+      // Sync with DB
+      const orderedIds = movedGifts.map(g => g.id)
+      const res = await registry.updateGiftOrder(orderedIds)
+      if (!res.ok) {
+        showAlert('Error', res.message || 'Error en reordenar', true)
+        await fetchGifts() // Rollback
+      }
+    }
+  })
+}
+
+function initPurchaseOptionsSortable() {
+  if (!purchaseOptionsRef.value) return
+  if (purchaseSortable) purchaseSortable.destroy()
+
+  purchaseSortable = Sortable.create(purchaseOptionsRef.value, {
+    handle: '.opt-drag-handle',
+    animation: 150,
+    ghostClass: 'opacity-50',
+    onEnd: (evt) => {
+      if (evt.oldIndex === undefined || evt.newIndex === undefined || evt.oldIndex === evt.newIndex) return
+
+      const options = [...newGift.value.purchase_options] as any[]
+      const [item] = options.splice(evt.oldIndex, 1)
+      options.splice(evt.newIndex, 0, item)
+      
+      newGift.value.purchase_options = options
+    }
+  })
+}
 
 async function handleLogin() {
   loading.value = true
@@ -224,8 +297,11 @@ async function fetchGifts() {
       gifts.value = registry.gifts.value
       return
     }
-    const { data } = await supabase.from('gifts').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase.from('gifts').select('*').order('sort_order', { ascending: true })
     gifts.value = data || []
+    nextTick(() => {
+      initGiftsSortable()
+    })
   } finally {
     giftsLoading.value = false
   }
@@ -264,7 +340,8 @@ async function handleSave() {
         image_url: finalImageUrl,
         is_visible: newGift.value.is_visible,
         purchase_options: validOptions,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        sort_order: gifts.value.length + 1
       }
 
       if (editingId.value) {
@@ -274,10 +351,13 @@ async function handleSave() {
         }
       } else {
         giftData.id = Math.random().toString(36).substring(7)
-        gifts.value = [giftData, ...gifts.value]
+        gifts.value = [...gifts.value, giftData]
       }
+      // Explicitly update registry state
       registry.gifts.value = [...gifts.value]
       showAlert('Correcte (Demo)', 'Canvis desats en memòria.', false)
+      cancelEdit()
+      return
     } else {
       if (editingId.value) {
         const res = await supabase.from('gifts').update({
@@ -296,7 +376,8 @@ async function handleSave() {
           price: newGift.value.price || null,
           image_url: finalImageUrl,
           is_visible: newGift.value.is_visible,
-          purchase_options: validOptions
+          purchase_options: validOptions,
+          sort_order: gifts.value.length + 1
         }])
         err = res.error
       }
@@ -764,12 +845,18 @@ function handleUnassign(id: string) {
                   Afegir tenda
                 </UButton>
               </div>
-              <div class="space-y-3">
+              <div
+                ref="purchaseOptionsRef"
+                class="space-y-3"
+              >
                 <div
                   v-for="(opt, idx) in newGift.purchase_options"
                   :key="idx"
-                  class="flex items-start gap-2 bg-white p-3 rounded-xl border border-stone-100 shadow-sm relative"
+                  class="flex items-center gap-3 bg-white p-3 rounded-xl border border-stone-100 shadow-sm relative group"
                 >
+                  <div class="opt-drag-handle cursor-grab active:cursor-grabbing p-1 -ml-1 text-stone-400 hover:text-stone-600 transition-colors">
+                    <UIcon name="i-lucide-grip-vertical" class="h-5 w-5" />
+                  </div>
                   <div class="grid flex-1 gap-3 sm:grid-cols-3">
                     <UInput
                       v-model="opt.store_name"
@@ -857,13 +944,19 @@ function handleUnassign(id: string) {
             Encara no hi ha cap regal.
           </div>
 
-          <div class="grid gap-4">
+          <div
+            ref="giftListRef"
+            class="grid gap-4"
+          >
             <div
               v-for="gift in gifts"
               :key="gift.id"
-              class="flex flex-col gap-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-5 text-stone-200 sm:flex-row sm:items-start transition-colors hover:bg-white/10"
+              class="flex flex-col gap-5 rounded-[1.5rem] border border-white/10 bg-white/5 p-5 text-stone-200 sm:flex-row sm:items-start transition-all hover:bg-white/10 group relative"
             >
-              <div class="shrink-0">
+              <div class="drag-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-30 hover:opacity-100 transition-all p-2 z-10">
+                <UIcon name="i-lucide-grip-vertical" class="h-6 w-6" />
+              </div>
+              <div class="shrink-0 ml-7 sm:ml-8">
                 <div
                   v-if="gift.image_url"
                   class="h-20 w-20 overflow-hidden rounded-2xl ring-1 ring-white/20"

@@ -18,10 +18,12 @@
     "@nuxt/ui": "^4.4.0",
     "@supabase/supabase-js": "^2.103.3",
     "nuxt": "^4.3.0",
+    "sortablejs": "^1.15.7",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.13.0",
+    "@types/sortablejs": "^1.15.9",
     "eslint": "^9.39.2",
     "sharp": "^0.34.5",
     "ssh2-sftp-client": "^12.1.1",

@@ -109,7 +109,8 @@ create table public.gifts (
   guest_message text,
   assigned_at timestamptz,
   created_at timestamptz not null default now(),
-  is_visible boolean default true
+  is_visible boolean default true,
+  sort_order integer default 0
 );
 ```
 
@@ -133,10 +134,10 @@ with check (assigned_to is not null);
 ## Dades de prova (Regals)
 
 ```sql
-insert into public.gifts (name, description, price, image_url, purchase_options)
+insert into public.gifts (name, description, price, image_url, purchase_options, sort_order)
 values
-  ('Bicicleta', 'Bici per a noves aventures.', 185, 'https://images.unsplash.com/photo-1485965120184-e220f721d03e', '[{"store_name": "Decathlon", "price": 185, "link": "https://decathlon.es"}]'),
-  ('Lego gran', 'Set creatiu en família.', 79, 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60', '[{"store_name": "Amazon", "price": 75}]');
+  ('Bicicleta', 'Bici per a noves aventures.', 185, 'https://images.unsplash.com/photo-1485965120184-e220f721d03e', '[{"store_name": "Decathlon", "price": 185, "link": "https://decathlon.es"}]', 1),
+  ('Lego gran', 'Set creatiu en família.', 79, 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60', '[{"store_name": "Amazon", "price": 75}]', 2);
 ```
 
 ## Reserva concurrent

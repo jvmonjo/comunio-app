@@ -17,6 +17,7 @@ export interface GiftItem {
   guest_message?: string | null
   assigned_at?: string | null
   is_visible?: boolean
+  sort_order?: number
 }
 
 interface ReserveGiftInput {
@@ -53,8 +54,8 @@ const demoGifts: GiftItem[] = [
     price: 120,
     image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80',
     purchase_options: [{ store_name: 'Rellotgeria local', price: 120 }],
-    assigned_to: 'Els iaios',
-    is_visible: true
+    is_visible: true,
+    sort_order: 3
   },
   {
     id: 'books',
@@ -64,7 +65,8 @@ const demoGifts: GiftItem[] = [
     image_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=80',
     purchase_options: [{ store_name: 'Casa del Llibre', price: 45, link: 'https://casadellibro.com' }],
     assigned_to: null,
-    is_visible: true
+    is_visible: true,
+    sort_order: 4
   }
 ]
 
@@ -79,7 +81,8 @@ function normalizeGift(raw: Partial<GiftItem> & { id: string, name: string, desc
     assigned_to: raw.assigned_to ?? null,
     guest_message: raw.guest_message ?? null,
     assigned_at: raw.assigned_at ?? null,
-    is_visible: raw.is_visible ?? true
+    is_visible: raw.is_visible ?? true,
+    sort_order: raw.sort_order ?? 0
   }
 }
 
@@ -118,14 +121,16 @@ export function useGiftRegistry() {
       const supabase = getClient()
 
       if (!supabase) {
-        gifts.value = demoGifts.map(normalizeGift)
+        if (gifts.value.length === 0) {
+          gifts.value = demoGifts.map(normalizeGift)
+        }
         return
       }
 
       const { data, error: fetchError } = await supabase
         .from('gifts')
-        .select('id, name, description, price, image_url, purchase_options, assigned_to, guest_message, assigned_at, is_visible')
-        .order('created_at', { ascending: true })
+        .select('id, name, description, price, image_url, purchase_options, assigned_to, guest_message, assigned_at, is_visible, sort_order')
+        .order('sort_order', { ascending: true })
 
       if (fetchError) {
         throw fetchError
@@ -193,6 +198,50 @@ export function useGiftRegistry() {
     }
   }
 
+  async function updateGiftOrder(orderedIds: string[]) {
+    isSubmitting.value = true
+    error.value = null
+
+    try {
+      const supabase = getClient()
+
+      if (!supabase) {
+        // Mode demo: reordenar en memòria
+        const newGifts = [...gifts.value]
+        newGifts.sort((a, b) => {
+          const idxA = orderedIds.indexOf(a.id)
+          const idxB = orderedIds.indexOf(b.id)
+          return idxA - idxB
+        })
+        newGifts.forEach((g, i) => { g.sort_order = i + 1 })
+        gifts.value = newGifts
+        return { ok: true }
+      }
+
+      // Actualització en batch a Supabase (múltiples crides o una funció RPC si fos complex)
+      // Per simplicitat i pocs regals, ho fem seqüencial o amb Promise.all
+      const updates = orderedIds.map((id, index) =>
+        supabase
+          .from('gifts')
+          .update({ sort_order: index + 1 })
+          .eq('id', id)
+      )
+
+      const results = await Promise.all(updates)
+      const firstError = results.find(r => r.error)?.error
+
+      if (firstError) throw firstError
+
+      await fetchGifts()
+      return { ok: true }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'No s\'ha pogut actualitzar l\'ordre.'
+      return { ok: false, message: error.value }
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
   return {
     gifts,
     isConfigured,
@@ -200,6 +249,7 @@ export function useGiftRegistry() {
     isSubmitting,
     error,
     fetchGifts,
-    reserveGift
+    reserveGift,
+    updateGiftOrder
   }
 }
