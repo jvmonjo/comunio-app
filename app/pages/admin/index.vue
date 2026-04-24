@@ -642,9 +642,12 @@ function handleUnassign(id: string) {
             <div class="sm:col-span-2">
               <UCheckbox
                 v-model="settings.hide_prices_after_reservation"
-                label="Amagar preus quan un regal ja estiga reservat"
                 color="neutral"
-              />
+              >
+                <template #label>
+                  <span class="text-sm font-medium text-stone-700">Amagar preus quan un regal ja estiga reservat</span>
+                </template>
+              </UCheckbox>
             </div>
 
             <div class="mt-4 sm:col-span-2">
@@ -710,9 +713,12 @@ function handleUnassign(id: string) {
               <label class="mb-1 block text-sm font-medium text-stone-700">Visibilitat</label>
               <UCheckbox
                 v-model="newGift.is_visible"
-                label="Producte visible a la llista pública"
                 color="neutral"
-              />
+              >
+                <template #label>
+                  <span class="text-sm font-medium text-stone-700">Producte visible a la llista pública</span>
+                </template>
+              </UCheckbox>
             </div>
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm font-medium text-stone-700">Imatge del Regal</label>
