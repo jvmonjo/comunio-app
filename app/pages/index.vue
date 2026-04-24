@@ -167,9 +167,7 @@ onBeforeUnmount(() => {
             <template v-if="settings.logo_url">
               <img :src="settings.logo_url" alt="Logo" class="h-16 w-auto object-contain sm:h-24">
             </template>
-            <span
-              v-else
-              :class="['inline-flex items-center rounded-full px-3 py-1 text-xs font-medium', th.badgeSoft]">
+            <span v-else :class="['inline-flex items-center rounded-full px-3 py-1 text-xs font-medium', th.badgeSoft]">
               Primera Comunió
             </span>
             <UBadge v-if="!isConfigured" color="neutral" variant="subtle" class="rounded-full px-3 py-1">
@@ -296,7 +294,9 @@ onBeforeUnmount(() => {
                   </li>
                   <li class="flex gap-3">
                     <UIcon name="i-lucide-gift" :class="['mt-1 h-4 w-4 shrink-0', th.heroAccentText]" />
-                    Si vols fer un detall, pots reservar un regal des de la llista d’ací baix.
+                    Si vols fer un detall, i no saps què regalar, pots reservar un regal des de la llista d’ací baix,
+                    per a
+                    evitar duplicitats.
                   </li>
                 </ul>
               </div>
@@ -440,10 +440,10 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="mt-auto">
-                  <UButton block :color="(gift.assigned_to ? 'neutral' : (selectedGiftId === gift.id ? 'warning' : th.btnPrimary)) as any"
+                  <UButton block
+                    :color="(gift.assigned_to ? 'neutral' : (selectedGiftId === gift.id ? 'warning' : th.btnPrimary)) as any"
                     :variant="gift.assigned_to || selectedGiftId === gift.id ? 'subtle' : 'solid'"
-                    :disabled="Boolean(gift.assigned_to)"
-                    :icon="selectedGiftId === gift.id ? 'i-lucide-x' : ''"
+                    :disabled="Boolean(gift.assigned_to)" :icon="selectedGiftId === gift.id ? 'i-lucide-x' : ''"
                     @click="selectGift(gift)">
                     <span v-if="selectedGiftId === gift.id">Desseleccionar</span>
                     <span v-else-if="gift.assigned_to">Ja reservat</span>
