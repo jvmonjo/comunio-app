@@ -13,7 +13,8 @@ export function useEventSettings() {
     contact_parents: 'Ana i Vicent',
     contact_phone: '+34 600 123 123',
     theme: 'amber',
-    logo_url: ''
+    logo_url: '',
+    hide_prices_after_reservation: false
   }))
 
   function getClient() {

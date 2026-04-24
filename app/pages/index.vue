@@ -40,11 +40,15 @@ const selectedGift = computed(() =>
 )
 
 const availableGifts = computed(() =>
-  gifts.value.filter(gift => !gift.assigned_to)
+  gifts.value.filter(gift => !gift.assigned_to && (gift.is_visible ?? true))
 )
 
 const reservedGifts = computed(() =>
-  gifts.value.filter(gift => gift.assigned_to)
+  gifts.value.filter(gift => gift.assigned_to && (gift.is_visible ?? true))
+)
+
+const publicGifts = computed(() =>
+  gifts.value.filter(gift => gift.is_visible ?? true)
 )
 
 const countdown = computed(() => {
@@ -379,7 +383,7 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
-            <UCard v-for="gift in gifts" :key="gift.id"
+            <UCard v-for="gift in publicGifts" :key="gift.id"
               class="rounded-[1.75rem] border-0 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] ring-1 transition-all duration-250 hover:-translate-y-1"
               :class="[
                 gift.assigned_to ? 'bg-black/5 ring-black/5 opacity-80' :
@@ -398,7 +402,7 @@ onBeforeUnmount(() => {
                         :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', gift.assigned_to ? 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-500/10' : th.badgeSoft]">
                         {{ gift.assigned_to ? 'Reservat' : 'Disponible' }}
                       </span>
-                      <span v-if="gift.price" :class="['text-sm font-semibold', th.subText]">{{ gift.price }} €</span>
+                      <span v-if="gift.price && !(gift.assigned_to && settings.hide_prices_after_reservation)" :class="['text-sm font-semibold', th.subText]">{{ gift.price }} €</span>
                     </div>
                     <h3 :class="['text-xl font-semibold', th.inverseText]">
                       {{ gift.name }}
@@ -422,7 +426,7 @@ onBeforeUnmount(() => {
                         <span class="font-medium">{{ opt.store_name }}</span>
                       </div>
                       <div class="flex items-center gap-3">
-                        <span v-if="opt.price" class="text-slate-500 font-medium">{{ opt.price }} €</span>
+                        <span v-if="opt.price && !(gift.assigned_to && settings.hide_prices_after_reservation)" class="text-slate-500 font-medium">{{ opt.price }} €</span>
                         <a v-if="opt.link" :href="opt.link" target="_blank" rel="noopener noreferrer"
                           :class="['transition-colors p-1 rounded-full flex items-center justify-center hover:bg-black/5', th.heroAccentText]"
                           title="Veure a la tenda">

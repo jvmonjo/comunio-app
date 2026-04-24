@@ -82,6 +82,7 @@ const defaultGift = () => ({
   description: '',
   price: undefined as number | undefined,
   image_url: '',
+  is_visible: true,
   purchase_options: [{ store_name: '', price: undefined, link: '' }] as PurchaseOption[]
 })
 
@@ -112,6 +113,7 @@ function handleEdit(gift: any) {
     description: gift.description,
     price: gift.price || undefined,
     image_url: gift.image_url || '',
+    is_visible: gift.is_visible ?? true,
     purchase_options: gift.purchase_options && gift.purchase_options.length > 0
       ? JSON.parse(JSON.stringify(gift.purchase_options))
       : [{ store_name: '', price: undefined, link: '' }]
@@ -201,7 +203,8 @@ async function handleSaveSettings() {
       contact_parents: settings.value.contact_parents,
       contact_phone: settings.value.contact_phone,
       theme: settings.value.theme,
-      logo_url: settings.value.logo_url
+      logo_url: settings.value.logo_url,
+      hide_prices_after_reservation: settings.value.hide_prices_after_reservation
     }).eq('id', 1)
     if (err) throw err
     showAlert('Correcte', 'Configuració de l\'esdeveniment desada amb èxit.', false)
@@ -259,6 +262,7 @@ async function handleSave() {
         description: newGift.value.description,
         price: newGift.value.price || null,
         image_url: finalImageUrl,
+        is_visible: newGift.value.is_visible,
         purchase_options: validOptions,
         created_at: new Date().toISOString()
       }
@@ -281,6 +285,7 @@ async function handleSave() {
           description: newGift.value.description,
           price: newGift.value.price || null,
           image_url: finalImageUrl,
+          is_visible: newGift.value.is_visible,
           purchase_options: validOptions
         }).eq('id', editingId.value)
         err = res.error
@@ -290,6 +295,7 @@ async function handleSave() {
           description: newGift.value.description,
           price: newGift.value.price || null,
           image_url: finalImageUrl,
+          is_visible: newGift.value.is_visible,
           purchase_options: validOptions
         }])
         err = res.error
@@ -633,6 +639,13 @@ function handleUnassign(id: string) {
                 color="neutral"
               />
             </div>
+            <div class="sm:col-span-2">
+              <UCheckbox
+                v-model="settings.hide_prices_after_reservation"
+                label="Amagar preus quan un regal ja estiga reservat"
+                color="neutral"
+              />
+            </div>
 
             <div class="mt-4 sm:col-span-2">
               <UButton
@@ -691,6 +704,14 @@ function handleUnassign(id: string) {
                 type="number"
                 color="neutral"
                 placeholder="Opcional"
+              />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Visibilitat</label>
+              <UCheckbox
+                v-model="newGift.is_visible"
+                label="Producte visible a la llista pública"
+                color="neutral"
               />
             </div>
             <div class="sm:col-span-2">
@@ -869,6 +890,15 @@ function handleUnassign(id: string) {
                     class="rounded-full text-xs"
                   >
                     {{ gift.price }} €
+                  </UBadge>
+                  <UBadge
+                    v-if="!gift.is_visible"
+                    color="error"
+                    variant="soft"
+                    class="rounded-full text-xs"
+                    icon="i-lucide-eye-off"
+                  >
+                    Ocult
                   </UBadge>
                 </div>
                 <p class="mb-3 text-sm text-stone-400">

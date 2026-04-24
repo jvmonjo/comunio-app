@@ -87,6 +87,7 @@ create table public.event_settings (
   contact_phone text,
   theme text default 'amber',
   logo_url text,
+  hide_prices_after_reservation boolean default false,
   created_at timestamptz default now()
 );
 
@@ -107,7 +108,8 @@ create table public.gifts (
   assigned_to text,
   guest_message text,
   assigned_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  is_visible boolean default true
 );
 ```
 

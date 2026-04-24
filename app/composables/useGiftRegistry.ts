@@ -16,6 +16,7 @@ export interface GiftItem {
   assigned_to?: string | null
   guest_message?: string | null
   assigned_at?: string | null
+  is_visible?: boolean
 }
 
 interface ReserveGiftInput {
@@ -32,7 +33,8 @@ const demoGifts: GiftItem[] = [
     price: 185,
     image_url: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=400&q=80',
     purchase_options: [{ store_name: 'Decathlon', price: 185, link: 'https://decathlon.es' }],
-    assigned_to: null
+    assigned_to: null,
+    is_visible: true
   },
   {
     id: 'lego',
@@ -41,7 +43,8 @@ const demoGifts: GiftItem[] = [
     price: 79,
     image_url: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?auto=format&fit=crop&w=400&q=80',
     purchase_options: [{ store_name: 'Amazon', price: 75, link: 'https://amazon.es' }, { store_name: 'El Corte Inglés', price: 79 }],
-    assigned_to: null
+    assigned_to: null,
+    is_visible: true
   },
   {
     id: 'watch',
@@ -50,7 +53,8 @@ const demoGifts: GiftItem[] = [
     price: 120,
     image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80',
     purchase_options: [{ store_name: 'Rellotgeria local', price: 120 }],
-    assigned_to: 'Els iaios'
+    assigned_to: 'Els iaios',
+    is_visible: true
   },
   {
     id: 'books',
@@ -59,7 +63,8 @@ const demoGifts: GiftItem[] = [
     price: 45,
     image_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=80',
     purchase_options: [{ store_name: 'Casa del Llibre', price: 45, link: 'https://casadellibro.com' }],
-    assigned_to: null
+    assigned_to: null,
+    is_visible: true
   }
 ]
 
@@ -73,7 +78,8 @@ function normalizeGift(raw: Partial<GiftItem> & { id: string, name: string, desc
     purchase_options: raw.purchase_options ?? [],
     assigned_to: raw.assigned_to ?? null,
     guest_message: raw.guest_message ?? null,
-    assigned_at: raw.assigned_at ?? null
+    assigned_at: raw.assigned_at ?? null,
+    is_visible: raw.is_visible ?? true
   }
 }
 
@@ -118,7 +124,7 @@ export function useGiftRegistry() {
 
       const { data, error: fetchError } = await supabase
         .from('gifts')
-        .select('id, name, description, price, image_url, purchase_options, assigned_to, guest_message, assigned_at')
+        .select('id, name, description, price, image_url, purchase_options, assigned_to, guest_message, assigned_at, is_visible')
         .order('created_at', { ascending: true })
 
       if (fetchError) {
