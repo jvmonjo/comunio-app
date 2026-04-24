@@ -118,7 +118,7 @@ function handleEdit(gift: any) {
   }
   if (fileInput.value) fileInput.value.value = ''
   selectedFile.value = null
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  document.getElementById('gift-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function cancelEdit() {
@@ -649,6 +649,7 @@ function handleUnassign(id: string) {
         </UCard>
 
         <UCard
+          id="gift-form"
           class="rounded-[2rem] border-0 bg-white/80 shadow-[0_24px_80px_-42px_rgba(120,53,15,0.45)] backdrop-blur transition-all"
           :class="editingId ? 'ring-2 ring-indigo-500 shadow-indigo-500/20' : ''"
         >

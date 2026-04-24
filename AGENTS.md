@@ -32,7 +32,7 @@ No hi ha backend custom. La persistència es resol amb `Supabase` directament de
   Shell global simplificat.
 
 - [nuxt.config.ts](/Users/josep/dev/comunio-app/nuxt.config.ts)
-  Configuració Nuxt i `runtimeConfig.public` per a Supabase.
+  Configuració Nuxt i `runtimeConfig.public` per a Supabase. Gestiona també el `baseURL` per a subdirectoris (ex: GitHub Pages).
 
 - [.env.example](/Users/josep/dev/comunio-app/.env.example)
   Variables d'entorn públiques esperades.
@@ -45,6 +45,7 @@ No hi ha backend custom. La persistència es resol amb `Supabase` directament de
 ```bash
 NUXT_PUBLIC_SUPABASE_URL=
 NUXT_PUBLIC_SUPABASE_ANON_KEY=
+NUXT_APP_BASE_URL= # Opcional: defineix el subpath (ex: /comunio-app/)
 ```
 
 Si falten, el projecte usa dades demo en memòria.
